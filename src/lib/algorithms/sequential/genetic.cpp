@@ -21,27 +21,31 @@
  * everything is blocked and locally balanced) then output otherwise
  * run reproduction and evaluate again
  * */
-MaxFlowSolution *solve(MaxFlowInstance *input){
+MaxFlowSolution *solve(MaxFlowInstance &input){
 
-  initialize(input->inputGraph.num_vertices, input->inputGraph.capacities);
-  evaluate(input->inputGraph.num_vertices, input->sink, input->source);
+  MaxFlowSolution solution;
+  initialize(input.inputGraph.num_vertices, input.inputGraph.capacities);
+  evaluate(input.inputGraph.num_vertices, input.sink, input.source);
   solutionIndex = foundValidSolution(
-      input->inputGraph.num_vertices,
-      input->source,
-      input->sink,
-      input->inputGraph.capacities);
+      input.inputGraph.num_vertices,
+      input.source,
+      input.sink,
+      input.inputGraph.capacities);
 
   //Todo: could place a cap on the number of generations here to speed up algo
   while (solutionIndex < 0){
-    reproduction(input->inputGraph.num_vertices, input->inputGraph.capacities);
-    evaluate(input->inputGraph.num_vertices, input->sink, input->source);
+    reproduction(input.inputGraph.num_vertices, input.inputGraph.capacities);
+    evaluate(input.inputGraph.num_vertices, input.sink, input.source);
     solutionIndex = foundValidSolution(
-        input->inputGraph.num_vertices,
-        input->source,
-        input->sink,
-        input->inputGraph.capacities);
+        input.inputGraph.num_vertices,
+        input.source,
+        input.sink,
+        input.inputGraph.capacities);
   }
-  return solutions[solutionIndex];
+
+  solution.flow = solutions[solutionIndex];
+  solution.maxFlow = -1.0f*outputFlow[solutionIndex][input.source];
+  return solution;
 }
 
 /* foundValidSolution
@@ -49,8 +53,6 @@ MaxFlowSolution *solve(MaxFlowInstance *input){
  * updates BALANCE and BLOCKED
  */
 int foundValidSolution(int num_vertices, int source, int sink, flow &capacities){
-
-
   for (int p=0; p < currentPopulationSize; p++){
 
     // Check Local Balance Property of solutions
