@@ -2,14 +2,17 @@
 Parallel and Sequential implementations of Dinic's, Push-Relabel and Genetic algorithms for solving the graph maxflow problem.
 
 How to Build Project:
-
+```
 mkdir build && cd build
 cmake .. && make
 cd ..
+```
 
 How to run (runs main.cpp):
 In the build directory:
+```
 ./maxflow
+```
 
 Todo (for Katia):
 Sequential Genetic Algorithm:
