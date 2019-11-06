@@ -1,15 +1,16 @@
 # 418MaxFloProject
 Parallel and Sequential implementations of Dinic's, Push-Relabel and Genetic algorithms for solving the graph maxflow problem.
 
-How to Build Project:
+### How to Build Project:
 ```
 mkdir build && cd build
 cmake .. && make
 cd ..
 ```
 
-How to run (runs main.cpp):
-In the build directory:
+### How to run (runs main.cpp):
+
+In the directory where you created the build directory:
 ```
 ./maxflow
 ```
