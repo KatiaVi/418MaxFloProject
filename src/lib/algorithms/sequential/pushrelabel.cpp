@@ -44,7 +44,7 @@ void preflow(MaxFlowInstance *input) {
     if (cap[input->source][i] != 0) { 
       // then it is an adjacent edge 
       flows[input->source][i] = cap[input->source][i]; 
-      excess[input->source][i] = cap[input->source][i]; 
+      excessPerVertex[i] = cap[input->source][i]; 
     }
   }
   // initialize active nodes to be all that have non zero excess
@@ -100,9 +100,7 @@ void pushRelabel(MaxFlowInstance *input) {
         excessPerVertex[outgoingAdmissibleEdges[i]] += delta; 
       }
     } else { // do the relabel - @TODO: i dont think this is right 
-      for (int i = 0; i < outgoingEdges.size(); i++) { 
-        d[u] = 1+findMinLabel(outgoingEdges); 
-      }
+      d[u] = 1+findMinLabel(outgoingEdges); 
     }
   }
 }
