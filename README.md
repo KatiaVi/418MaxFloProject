@@ -17,9 +17,6 @@ In the directory where you created the build directory:
 
 Todo (for Katia):
 Sequential Genetic Algorithm:
-1. Finish Implementing functions for sequential genetic version
-2. Create Makefile to run compile the genetic sequential code
-3. Create a main function to run the sequential genetic solver from
 4. Create a small test case to run the genetic sequential code on
 5. (Discuss with Wynne) Re-evaluate the design choices made (class types, functions, private/public variables)
 6. Try to hook up a larger test case (from our actual workload)
