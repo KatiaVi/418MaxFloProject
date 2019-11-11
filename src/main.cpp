@@ -5,11 +5,8 @@
 #include <iostream>
 #include "lib/world.h"
 #include "lib/algorithms/sequential/genetic.h"
-<<<<<<< Updated upstream
 #include "lib/algorithms/sequential/pushrelabel.h"
-=======
 #include "lib/algorithms/sequential/dinics.h"
->>>>>>> Stashed changes
 
 void generateCapacities(int numVertices, int numEdges, float **capacities){ 
   capacities = new float*[numVertices]; 
@@ -108,25 +105,19 @@ int main ( int argc, char * argv[] )
   MaxFlowSolution gSolution;
   GeneticSequentialSolver gSolver;
   gSolver.solve(inputInstance, gSolution);
-
   std::cout << "genetic maxflow is " << gSolution.maxFlow << "\n";
-  gSolver.printSolutions(inputInstance.inputGraph.num_vertices);
-  /*GeneticSequentialSolver gSolver;
-  gSolution = gSolver.solve(inputInstance);*/ 
+
   PushRelabelSequentialSolver prSolver; 
   MaxFlowSolution prSolution; 
   //prSolver.pushRelabel(&inputInstance, &prSolution); 
   prSolver.pushRelabel(&inputInstance, &prSolution); 
   printf("push relabel maxflow: %f\n", prSolution.maxFlow);
 
-  std::cout << "dinic maxflow is " << gSolution.maxFlow << "\n";
+  MaxFlowSolution dSolution;
+  DinicsSequentialSolver dSolver;
+  dSolver.solve(inputInstance, dSolution);
+  printf("dinic maxflow: %f\n", dSolution.maxFlow);
 
-//  MaxFlowSolution dSolution;
-//  DinicsSequentialSolver dSolver;
-//  dSolver.solve(inputInstance, dSolution);
-//
-//  std::cout << "maxflow is " << dSolution.maxFlow << "\n";
-  //gSolver.printSolutions(inputInstance.inputGraph.num_vertices);
 
   // gSolution.maxFlow should be 5
   // http://www.cs.cmu.edu/afs/cs/academic/class/15451-s16/www/lectures/lec12-flow1.pdf
