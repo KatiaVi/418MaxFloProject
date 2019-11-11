@@ -15,7 +15,7 @@
 #ifndef INC_418MAXFLOPROJECT_GENETIC_H
 #define INC_418MAXFLOPROJECT_GENETIC_H
 
-#define POPULATION_SIZE 10;
+#define POPULATION_SIZE 100;
 
 class GeneticSequentialSolver{
  public:

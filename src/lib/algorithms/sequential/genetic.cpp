@@ -150,7 +150,7 @@ void GeneticSequentialSolver::reproduction(int num_vertices, float** capacities,
     fitnessSum += fitnessScores[p];
   }
 
-  std::cout<<"Got all the fitness scores\n";
+  //std::cout<<"Got all the fitness scores\n";
 
   std::random_device rd1;
   std::mt19937 rng1(rd1());
@@ -166,14 +166,14 @@ void GeneticSequentialSolver::reproduction(int num_vertices, float** capacities,
   if (individual2 >= individual1){
     individual2 += 1;
   }
-  std::cout << "ind1: " << individual1 << "ind 2: " << individual2 << "\n";
+  //std::cout << "ind1: " << individual1 << "ind 2: " << individual2 << "\n";
 
-  std::cout << "generated random individuals for crossOver\n";
+  //std::cout << "generated random individuals for crossOver\n";
 
 
   float** newSolution = crossOver(individual1, individual2, num_vertices, source, sink, capacities);
 
-  std::cout << "finished crossOver\n";
+ // std::cout << "finished crossOver\n";
 
   // delete the 2 old solutions and add new solution to generation
   // erase the old solution with higher index first so that the index of
@@ -205,7 +205,7 @@ float** GeneticSequentialSolver::crossOver(int solution1, int solution2, int num
   for (int i=0; i < num_vertices; i++){
     newSolution[i] = new float[num_vertices];
   }
-  std::cout<<"set newSolutionStuff1\n";
+//  std::cout<<"set newSolutionStuff1\n";
 
 
   char newEdgeAdded[num_vertices*num_vertices]; //Todo: maybe change to bitstring to make more efficient
@@ -214,7 +214,7 @@ float** GeneticSequentialSolver::crossOver(int solution1, int solution2, int num
   newSolution[source][source] = 0.0f;
   newSolution[sink][sink] = 0.0f;
 
-  std::cout<<"set newSolutionStuff2\n";
+  //std::cout<<"set newSolutionStuff2\n";
 
   for (int i=0; i < num_vertices; i++){
 
@@ -302,6 +302,7 @@ void GeneticSequentialSolver::solve(MaxFlowInstance &input, MaxFlowSolution &out
   MaxFlowSolution solution;
 
   initialize(input.inputGraph.num_vertices, input.inputGraph.capacities);
+  printSolutions(input.inputGraph.num_vertices);
 
   evaluate(input.inputGraph.num_vertices, input.sink, input.source);
   int solutionIndex = foundValidSolution(
@@ -310,33 +311,39 @@ void GeneticSequentialSolver::solve(MaxFlowInstance &input, MaxFlowSolution &out
       input.sink,
       input.inputGraph.capacities);
 
-  std::cout << "solutionIndex: " << solutionIndex << "\n";
 
-
+  int ctr = 0;
   //Todo: could place a cap on the number of generations here to speed up algo
   while (solutionIndex < 0){
     reproduction(input.inputGraph.num_vertices, input.inputGraph.capacities, input.source, input.sink);
-    std::cout << "finished reproduction\n";
+    if (ctr == 99) printSolutions(input.inputGraph.num_vertices);
+    ctr += 1;
 
     evaluate(input.inputGraph.num_vertices, input.sink, input.source);
-    std::cout << "finished evaltuate\n";
 
-    printSolutions(input.inputGraph.num_vertices);
+    //printSolutions(input.inputGraph.num_vertices);
 
     solutionIndex = foundValidSolution(
         input.inputGraph.num_vertices,
         input.source,
         input.sink,
         input.inputGraph.capacities);
-    std::cout << "finished foundValidSolution\n";
-
   }
-  std::cout << "finished while loop\n";
 
   solution.flow = solutions[solutionIndex];
-  solution.maxFlow = -1.0f*outputFlow[solutionIndex][input.source];
+  solution.maxFlow = outputFlow[solutionIndex][input.source];
   output = solution;
 }
+
+//
+//void GeneticSequentialSolver::printTotalFlow(int num_vertices) {
+//  for (int p=0; p < currentPopulationSize; p++){
+//    std::cout << "solution #" << p << "\n";
+//    for (int i=0; i < num_vertices; i++){
+//      std::cout << solutions[p][i][j] << " ";
+//    }
+//  }
+//}
 
 void GeneticSequentialSolver::printSolutions(int num_vertices) {
   for (int p=0; p < currentPopulationSize; p++){
