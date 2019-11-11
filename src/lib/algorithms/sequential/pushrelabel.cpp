@@ -2,44 +2,38 @@
 // Created by Wynne Yao on 2019-11-04.
 //
 
-// @TODO: look at the FIFO version! 
-
 #include <cstdlib>
 #include <ctime>
 #include <numeric>
 #include <algorithm>
 #include <iostream>
 #include <vector>
+#include <queue> 
+#include <limits.h> 
 
 #include "pushrelabel.h"
-#include "./world.h" 
 
 using namespace std; 
 
-
-MaxFlowSolution *solve(MaxFlowInstance *input){
-  preflow(input); 
-} 
-
-void initialize(MaxFlowInstance *input) { 
+void PushRelabelSequentialSolver::initialize(MaxFlowInstance *input) { 
   int numVertices = input->inputGraph.num_vertices;
+  d = (int*)calloc(numVertices, sizeof(int)); 
+  active = (int*)calloc(numVertices, sizeof(int)); 
+  excessPerVertex = (float*)calloc(numVertices, sizeof(float)); 
+  flows = new float*[numVertices]; 
   for (int i = 0; i < numVertices; i++) { 
-    d[i] = 0; 
-    active[i] = 0;
-    excessPerVertex[i] = 0;  
-    for (int j = 0; j < numVertices; j++) { 
-      flows[i][j] = 0;
-    } 
+    flows[i] = new float[numVertices]; 
   }
 }
 
 // check that my preflow is correct 
-void preflow(MaxFlowInstance *input) { 
+bool PushRelabelSequentialSolver::preflow(MaxFlowInstance *input) { 
   initialize(input); 
-
+  bool isExcess = false; 
   int numVertices = input->inputGraph.num_vertices; 
+  
+  
 
-  d[input->source] = numVertices; 
 
   for (int i = 0; i < numVertices; i++) { 
     d[i] = 0; 
@@ -48,125 +42,161 @@ void preflow(MaxFlowInstance *input) {
     }
   }
 
+  d[input->source] = numVertices; 
   // find all vertices adjacent to s 
   float **cap = input->inputGraph.capacities; 
+  printf("source: %d\n", input->source); 
+
   for (int i = 0; i < numVertices; i++) { 
-    if (cap[input->source][i] != 0) { 
+    if (cap[input->source][i] != 0 && (input->source != i)) { 
       // then it is an adjacent edge 
       flows[input->source][i] = cap[input->source][i]; 
+      //@TODO: make sure i have floats for the flows 
       excessPerVertex[i] = flows[input->source][i];
       // add residual flow 
       flows[i][input->source] = -flows[input->source][i]; 
+      isExcess = true;
     }
   }
-  // initialize active nodes to be all that have non zero excess
   
+  // initialize active nodes to be all that have non zero excess
+  return isExcess; 
 }
 
-int existsActiveNode(MaxFlowInstance *input) { 
+int PushRelabelSequentialSolver::existsActiveNode(MaxFlowInstance *input) { 
   int numVertices = input->inputGraph.num_vertices;
+  float **cap = input->inputGraph.capacities; 
   for (int i = 0; i < numVertices; i++) { 
-    if (excessPerVertex[i] > 0 && i != input->source && i != input->sink) { //@TODO: initialize active at some point? 
+    if (excessPerVertex[i] > 0 && i != input->source && i != input->sink) { //@TODO: initialize active at some point?  
       return i; 
     }
   }
   return -1; 
 }
 
-bool isAdmissible(int u, int j) { 
-  return (d[u] == d[j]+1); 
-}
+// bool PushRelabelSequentialSolver::isAdmissible(int u, int j) { 
+//   return (d[u] == d[j]+1); 
+// }
 
-int findMinLabel(vector<int> outgoingEdges) { 
-  int min = numeric_limits<int>::max(); 
-  for (int i = 0; i < outgoingEdges.size(); i++) { 
-    if (d[outgoingEdges[i]] < min) { 
-      min = d[outgoingEdges[i]]; 
-    }
-  }
-  return min; 
-}
+// int PushRelabelSequentialSolver::findMinLabel(vector<int> outgoingEdges) { 
+//   int min = numeric_limits<int>::max(); 
+//   for (int i = 0; i < outgoingEdges.size(); i++) { 
+//     if (d[outgoingEdges[i]] < min) { 
+//       min = d[outgoingEdges[i]]; 
+//     }
+//   }
+//   return min; 
+// }
 
-bool push(int numVertices, float **cap, int u) { 
+bool PushRelabelSequentialSolver::push(int numVertices, float **cap, int u, int sink) { 
+  
   for (int v = 0; v < numVertices; v++) { 
-      if (flows[u][v] != 0) { // it's a valid edge 
-        if (flows[u][v] == cap[u][v]) { 
-          continue; 
-        }
-        if (d[u] > d[v]) { // push if the height of the adjacent is smaller 
+      //if (cap[u][v] != 0) { // it's a valid edge 
+        
+        if (d[u] > d[v] && (cap[u][v] - flows[u][v] > 0)) { // push if the height of the adjacent is smaller
+          if (u == 2 && v == 3) { 
+            printf("cap[u][v]: %f, flows[u][v]: %f\n", cap[2][3], flows[2][3]); 
+          }
           // push flow = min(remaining flow on edge, excess flow)
-          int flow = min(cap[u][v] - flows[u][v], excessPerVertex[u]); 
-          
+          float flow = min(cap[u][v] - flows[u][v], excessPerVertex[u]); //@TODO: bug: adding 0 here 
           // reduce excess flow for overflowing vertex 
           excessPerVertex[u] -= flow; 
+          printf("gets decreased: %d, flow: %f, cap[u][v]-flows[u][v]: %f\n", u, flow, (cap[u][v]-flows[u][v]));
 
           // increase excess flow for adjacent 
           excessPerVertex[v] += flow; 
 
           // add residual flow 
           flows[u][v] += flow; 
+          if (v == sink) { 
+            totalFlow += flow; 
+            printf("totalFlow: %f\n", totalFlow);  
+          }
           flows[v][u] -= flow; //@TODO: i think this is what they're doing 
           return true; 
         }
-      }
+      //}
     }
     return false; 
 }
 
-void relabel(int numVertices, float **cap, int u) { 
-  float minHeight = numeric_limits<int>::max(); 
+void PushRelabelSequentialSolver::relabel(int numVertices, float **cap, int u) { 
   for (int i = 0; i < numVertices; i++) { 
-    if (flows[u][i] != 0) { 
-      if (flows[u][i] == cap[u][i]) { 
-        continue; 
-      }
-
-      // update minimum height
-      if (d[excessPerVertex[i]] < minHeight) { 
-        minHeight = d[excessPerVertex[i]]; 
-      }
+    if (cap[u][i] - flows[u][i] != 0) { 
+      assert(excessPerVertex[u] > 0 && d[u] <= d[i]); 
+    }
+  }
+  
+  int minHeight = INT_MAX; 
+  for (int v = 0; v < numVertices; v++) { 
+    if ((cap[u][v] - flows[u][v]) > 0) { 
+      minHeight = min(minHeight, d[v]); 
     } 
   }
-  d[u] = minHeight + 1; //@TODO: might be shifted in? 
+  d[u] = minHeight + 1;
 }
 
-void pushRelabel(MaxFlowInstance *input) { 
-  preflow(input); 
-
+void PushRelabelSequentialSolver::pushRelabel(MaxFlowInstance *input, MaxFlowSolution *output) { 
+  bool isExcess = false; 
+  isExcess = preflow(input); 
+  printf("height of source: %d\n", d[input->source]); 
   int numVertices = input->inputGraph.num_vertices;
-  int u = existsActiveNode(input); 
-  float **cap = input->inputGraph.capacities; 
+   
   
-  while (u != -1) { 
+  float **cap = input->inputGraph.capacities; 
+  // int u = existsActiveNode(input); 
+  int u; 
+  
+  while (isExcess) { 
+    isExcess = false; 
+    for (int u = 0; u < numVertices; u++) { 
+      if ((u != input->source) && (u != input->sink) && (excessPerVertex[u] > 0)) { 
+        printf("u: %d\n", u);
+        if (!push(numVertices, cap, u, input->sink)) { 
+          printf("relabel\n"); 
+          relabel(numVertices, cap, u); 
+        } 
+        if (!isExcess) { 
+          isExcess = true; 
+        }
+
+        // testing code 
+        for (int i = 0; i < numVertices; i++) { 
+          for (int j = 0; j < numVertices; j++) { 
+            if (flows[i][j] != 0) { 
+              printf("flows[%d][%d]: %f\n", i, j, flows[i][j]); 
+            }
+          }
+        }
+        for (int i = 0; i < numVertices; i++) { 
+          printf("d[%d]: %d\n", i, d[i]); 
+        }
+        for (int i = 0; i < numVertices; i++) { 
+          printf("excessPerVertex[%d]: %f\n", i, excessPerVertex[i]); 
+        }
+      }
+    }
+    
     // look at all outgoing edges of u 
     // vector<int> outgoingAdmissibleEdges; 
     // vector<int> outgoingEdges;  
-    if (!push(numVertices, cap, u)) { 
-      relabel(numVertices, cap, u); 
-    } 
-    /*for (int j = 0; j < numVertices; j++) { 
-      if (flows[u][j] != 0 && isAdmissible(u, j)) { 
-        outgoingAdmissibleEdges.push_back(j);
-        // if flow is equal to capacity then can't push?
-        if (flows[u][j] == cap[u][j]) { 
-          continue; 
-        }
-        if (flows[u][j] < minOutFlow) { // find the min out flow (for separate step)
-          minOutFlow = flows[u][j]; 
-        }
-      } else if (flows[u][j] != 0) { 
-        outgoingEdges.push_back(j); 
-      }
-    } 
-    if (outgoingAdmissibleEdges.size() > 0) { // do the push 
-      float delta = min(minOutFlow, excessPerVertex[u]); 
-      excessPerVertex[u] -= delta; 
-      for (int i = 0; i < outgoingAdmissibleEdges.size(); i++) { 
-        excessPerVertex[outgoingAdmissibleEdges[i]] += delta; 
-      }
-    } else { // do the relabel - @TODO: i dont think this is right 
-      d[u] = 1+findMinLabel(outgoingEdges); 
-    }*/ 
+    
+
+    // u = existsActiveNode(input); 
+    // counter++; 
   }
+
+  
+
+  printf("totalFlow: %f\n", totalFlow); 
+
+  output->maxFlow = excessPerVertex[input->sink]; // i think 
+  output->flow = flows; 
+   
 }
 
+// class MaxFlowSolution{
+//  public:
+//   float maxFlow;
+//   float** flow; // num_vertices x num_vertices array where cij = flow capacity of edge i->j
+// };
