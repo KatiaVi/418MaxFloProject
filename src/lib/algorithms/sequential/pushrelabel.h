@@ -14,7 +14,7 @@ class PushRelabelSequentialSolver{
     float totalFlow; 
 
     void initialize(MaxFlowInstance *input);
-    bool preflow(MaxFlowInstance *input);
+    void preflow(MaxFlowInstance *input);
     bool push(int numVertices, float **cap, int u, int sink);
     void relabel(int numVertices, float **cap, int u);
     int existsActiveNode(MaxFlowInstance *input);

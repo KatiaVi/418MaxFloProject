@@ -26,9 +26,8 @@ void PushRelabelSequentialSolver::initialize(MaxFlowInstance *input) {
   }
 }
 
-bool PushRelabelSequentialSolver::preflow(MaxFlowInstance *input) { 
+void PushRelabelSequentialSolver::preflow(MaxFlowInstance *input) { 
   initialize(input); 
-  bool isExcess = false; 
   int numVertices = input->inputGraph.num_vertices; 
 
   for (int i = 0; i < numVertices; i++) { 
@@ -50,12 +49,10 @@ bool PushRelabelSequentialSolver::preflow(MaxFlowInstance *input) {
       excessPerVertex[i] = flows[input->source][i];
       // add residual flow 
       flows[i][input->source] = -flows[input->source][i]; 
-      isExcess = true;
     }
   }
   
   // initialize active nodes to be all that have non zero excess
-  return isExcess; 
 }
 
 int PushRelabelSequentialSolver::existsActiveNode(MaxFlowInstance *input) { 
@@ -106,27 +103,26 @@ void PushRelabelSequentialSolver::relabel(int numVertices, float **cap, int u) {
   d[u] = minHeight + 1;
 }
 
+
+
 void PushRelabelSequentialSolver::pushRelabel(MaxFlowInstance *input, MaxFlowSolution *output) { 
-  bool isExcess = false; 
-  isExcess = preflow(input); 
-  printf("height of source: %d\n", d[input->source]); 
+  preflow(input); 
   int numVertices = input->inputGraph.num_vertices;
    
   
   float **cap = input->inputGraph.capacities; 
   int u = existsActiveNode(input); 
-  // int u; 
 
   while (u != -1) {
     if ((u != input->source) && (u != input->sink) && (excessPerVertex[u] > 0)) { 
-      printf("u: %d\n", u);
+      //printf("u: %d\n", u);
       if (!push(numVertices, cap, u, input->sink)) { 
-        printf("relabel\n"); 
+        //printf("relabel\n"); 
         relabel(numVertices, cap, u); 
       } 
 
-      // testing code 
-      for (int i = 0; i < numVertices; i++) { 
+      //testing code 
+      /* for (int i = 0; i < numVertices; i++) { 
         for (int j = 0; j < numVertices; j++) { 
           if (flows[i][j] != 0) { 
             printf("flows[%d][%d]: %f\n", i, j, flows[i][j]); 
@@ -138,7 +134,7 @@ void PushRelabelSequentialSolver::pushRelabel(MaxFlowInstance *input, MaxFlowSol
       }
       for (int i = 0; i < numVertices; i++) { 
         printf("excessPerVertex[%d]: %f\n", i, excessPerVertex[i]); 
-      }
+      } */ 
     }
     u = existsActiveNode(input); 
   }
