@@ -25,6 +25,8 @@ int main ( int argc, char * argv[] )
   // try calling genetic algo solve function on a sample graph
   // std::cout << argc << argv[0] << "Hello!\n";
 
+  // maxFlow should be 5
+  // taken from: http://www.cs.cmu.edu/afs/cs/academic/class/15451-s16/www/lectures/lec12-flow1.pdf
   float **capacities1; 
   int numVertices = 6; 
   int numEdges = 8; 
@@ -37,7 +39,6 @@ int main ( int argc, char * argv[] )
       capacities1[i][j] = 0.0f; 
     }
   }
-  //generateCapacities(6, 8, capacities1);
   
   Graph testGraph1;
   testGraph1.num_vertices = 6;
@@ -64,10 +65,7 @@ int main ( int argc, char * argv[] )
 
   std::cout << "finished creating test graph\n";
 
-
-  int source = 0;
-  int sink = 5;
-
+  // should be 6 
   Graph testGraph2; 
   float **capacities2; 
   int numVertices2 = 4; 
@@ -91,16 +89,48 @@ int main ( int argc, char * argv[] )
   testGraph2.capacities[1][3] = 1; 
   testGraph2.capacities[2][3] = 5; 
 
+  // test graph from wikipedia: https://en.wikipedia.org/wiki/Push%E2%80%93relabel_maximum_flow_algorithm
+  // should be 14 
+  Graph testGraph3; 
+  float **capacities3; 
+  int numVertices3 = 6; 
+  int numEdges3 = 8; 
+  capacities3 = new float*[numVertices3]; 
+  for (int i = 0; i < numVertices3; i++) { 
+    capacities3[i] = new float[numVertices3]; 
+  }
+  for (int i = 0; i < numVertices3; i++) { 
+    for (int j = 0; j < numVertices3; j++) { 
+      capacities3[i][j] = 0.0f; 
+    }
+  }
+  testGraph3.num_vertices = numVertices3; 
+  testGraph3.num_edges = numEdges3; 
+  testGraph3.capacities = capacities3; 
+
+  testGraph3.capacities[0][1] = 15; 
+  testGraph3.capacities[0][3] = 4; 
+  testGraph3.capacities[1][2] = 12; 
+  testGraph3.capacities[2][5] = 7; 
+  testGraph3.capacities[2][3] = 3; 
+  testGraph3.capacities[3][4] = 10; 
+  testGraph3.capacities[4][1] = 5; 
+  testGraph3.capacities[4][5] = 10; 
+
   MaxFlowInstance inputInstance;
   inputInstance.inputGraph = testGraph1;
-  inputInstance.sink = sink;
-  inputInstance.source = source;
+  inputInstance.sink = 5;
+  inputInstance.source = 0;
 
   MaxFlowInstance inputInstance2;
   inputInstance2.inputGraph = testGraph2;
   inputInstance2.sink = 3;
   inputInstance2.source = 0;
 
+  MaxFlowInstance inputInstance3;
+  inputInstance3.inputGraph = testGraph3;
+  inputInstance3.sink = numVertices3-1;
+  inputInstance3.source = 0;
 
   MaxFlowSolution gSolution;
   GeneticSequentialSolver gSolver;
@@ -110,18 +140,17 @@ int main ( int argc, char * argv[] )
   PushRelabelSequentialSolver prSolver; 
   MaxFlowSolution prSolution; 
   //prSolver.pushRelabel(&inputInstance, &prSolution); 
-  prSolver.pushRelabel(&inputInstance, &prSolution); 
+  prSolver.pushRelabel(&inputInstance3, &prSolution); 
+  assert(prSolution.maxFlow == 12); 
   printf("push relabel maxflow: %f\n", prSolution.maxFlow);
 
   MaxFlowSolution dSolution;
   DinicsSequentialSolver dSolver;
-  dSolver.solve(inputInstance, dSolution);
+  dSolver.solve(inputInstance3, dSolution);
   printf("dinic maxflow: %f\n", dSolution.maxFlow);
 
 
-  // gSolution.maxFlow should be 5
-  // http://www.cs.cmu.edu/afs/cs/academic/class/15451-s16/www/lectures/lec12-flow1.pdf
-  // (using this example graph)
+  
 
   return 0;
 }
