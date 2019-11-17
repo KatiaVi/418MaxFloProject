@@ -1,5 +1,6 @@
 #include "../../world.h"
 #include <queue> 
+#include "../../timing.h"
 using namespace std; 
 
 class PushRelabelSequentialSolver{ 
@@ -12,6 +13,7 @@ class PushRelabelSequentialSolver{
     int *active; // replace with a queue 
     queue<int> activeQueue; 
     float totalFlow; 
+    Timer t; 
 
     void initialize(MaxFlowInstance *input);
     void preflow(MaxFlowInstance *input);

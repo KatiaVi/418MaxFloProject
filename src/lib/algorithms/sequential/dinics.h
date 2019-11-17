@@ -3,6 +3,7 @@
 //
 
 #include "../../world.h"
+#include "../../timing.h" 
 #include <vector>
 
 #ifndef INC_418MAXFLOPROJECT_DINICS_H
@@ -20,6 +21,7 @@ class DinicsSequentialSolver{
   float **flows; // flow solution
   float **capacities;
   std::vector<std::vector<int>> edges; // index = vertex and the element is an array of vertices that vertex is adjacent to
+  Timer t; 
 
   void initialize(MaxFlowInstance &input);
   bool BFS(int source, int sink);

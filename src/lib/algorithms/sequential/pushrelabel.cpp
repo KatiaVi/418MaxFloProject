@@ -106,9 +106,9 @@ void PushRelabelSequentialSolver::relabel(int numVertices, float **cap, int u) {
 
 
 void PushRelabelSequentialSolver::pushRelabel(MaxFlowInstance *input, MaxFlowSolution *output) { 
+  t.reset();
   preflow(input); 
   int numVertices = input->inputGraph.num_vertices;
-   
   
   float **cap = input->inputGraph.capacities; 
   int u = existsActiveNode(input); 
@@ -138,6 +138,8 @@ void PushRelabelSequentialSolver::pushRelabel(MaxFlowInstance *input, MaxFlowSol
     }
     u = existsActiveNode(input); 
   }
+  double time = t.elapsed(); 
+  printf("Push-Relabel time: %6fms\n", time); 
 
   output->maxFlow = excessPerVertex[input->sink]; 
   output->flow = flows; 

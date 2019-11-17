@@ -103,7 +103,7 @@ bool DinicsSequentialSolver::BFS(int source, int sink)
 }
 
 void DinicsSequentialSolver::solve(MaxFlowInstance &input, MaxFlowSolution &output){
-
+  t.reset(); 
   initialize(input);
 
   int totalFlow = 0;
@@ -124,7 +124,8 @@ void DinicsSequentialSolver::solve(MaxFlowInstance &input, MaxFlowSolution &outp
       flow = sendFlow(input.source, INT_MAX, input.sink, start);
     }
   }
-
+  double time = t.elapsed(); 
+  printf("Dinics Time: %6fms\n", time); 
   output.maxFlow = totalFlow;
   output.flow = flows;
 }
