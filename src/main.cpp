@@ -8,6 +8,9 @@
 #include "lib/algorithms/sequential/pushrelabel.h"
 #include "lib/algorithms/sequential/dinics.h"
 
+#include <fstream>
+#include <boost/algorithm/string.hpp>
+
 void generateCapacities(int numVertices, int numEdges, float **capacities){ 
   capacities = new float*[numVertices]; 
   for (int i = 0; i < numVertices; i++) { 
@@ -38,6 +41,28 @@ int main ( int argc, char * argv[] )
     for (int j = 0; j < numVertices; j++) { 
       capacities1[i][j] = 0.0f; 
     }
+  }
+
+  const string& fileName = "small1.txt";
+  std::ofstream file(fileName);
+
+  if (!file.is_open()){
+    std::cout << "not open file\n";
+  }
+
+  if (file.is_open()) {
+    std::cout << fileName << "\n";
+
+    std::string line;
+    while (getline(file, line)) {
+      std:: cout << line << "WOW\n";
+      if (line[0] == 'p') {
+        std::vector<std::string> results;
+        boost::split(results, line, [](char c) { return c == ' '; });
+        std::cout << line << "\n";
+      }
+    }
+    file.close();
   }
   
   Graph testGraph1;
@@ -132,10 +157,10 @@ int main ( int argc, char * argv[] )
   inputInstance3.sink = numVertices3-1;
   inputInstance3.source = 0;
 
-  MaxFlowSolution gSolution;
-  GeneticSequentialSolver gSolver;
-  gSolver.solve(inputInstance, gSolution);
-  std::cout << "genetic maxflow is " << gSolution.maxFlow << "\n";
+//  MaxFlowSolution gSolution;
+//  GeneticSequentialSolver gSolver;
+//  gSolver.solve(inputInstance, gSolution);
+//  std::cout << "genetic maxflow is " << gSolution.maxFlow << "\n";
 
   PushRelabelSequentialSolver prSolver; 
   MaxFlowSolution prSolution; 

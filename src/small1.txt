@@ -1,0 +1,21 @@
+c test case: small graph 1
+c taken from: http://www.cs.cmu.edu/afs/cs/academic/class/15451-s16/www/lectures/lec12-flow1.pdf
+c maxflow should be 5
+c Problem line (nodes, links)
+p max 6 8
+c source
+n 1 s
+c sink
+n 6 t
+c Arc descriptor lines (from, to, capacity)
+a 1 2 4
+a 1 3 2
+a 2 4 3
+a 3 4 2
+a 3 5 3
+a 4 3 1
+a 4 6 2
+a 5 6 4
+c
+c End of file
+
