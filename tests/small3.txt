@@ -1,0 +1,21 @@
+c test case: small graph 3
+c test graph from wikipedia: https://en.wikipedia.org/wiki/Push%E2%80%93relabel_maximum_flow_algorithm
+c maxflow should be 14
+c Problem line (nodes, links)
+p max 6 8
+c source
+n 1 s
+c sink
+n 6 t
+c Arc descriptor lines (from, to, capacity)
+a 1 2 15
+a 1 4 4
+a 2 3 12
+a 3 6 7
+a 3 4 3
+a 4 5 10
+a 5 2 5
+a 5 6 10
+c
+c End of file
+c Can also add solution to this file or create a different file that contains the solution for this test case

@@ -13,7 +13,7 @@
 class DinicsSequentialSolver{
  public:
   // look into shared, unique, reference stuff to make this more effecient
-  void solve(MaxFlowInstance &input, MaxFlowSolution &output);
+  void solve(MaxFlowInstance *input, MaxFlowSolution *output);
 
  private:
   int num_vertices;
@@ -23,7 +23,7 @@ class DinicsSequentialSolver{
   std::vector<std::vector<int>> edges; // index = vertex and the element is an array of vertices that vertex is adjacent to
   Timer t; 
 
-  void initialize(MaxFlowInstance &input);
+  void initialize(MaxFlowInstance *input);
   bool BFS(int source, int sink);
   float sendFlow(int currentVertex, int flow, int sink, int *start);
 

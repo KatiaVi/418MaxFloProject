@@ -8,11 +8,12 @@
  * it was modified to fit our data structures for the maxflow input instance and the maxflow solution
  */
 
-void DinicsSequentialSolver::initialize(MaxFlowInstance &input){
-  num_vertices = input.inputGraph.num_vertices;
+void DinicsSequentialSolver::initialize(MaxFlowInstance *input){
+  num_vertices = input->inputGraph.num_vertices;
   levels = new int[num_vertices];
   flows = new float*[num_vertices];
-  capacities = input.inputGraph.capacities;
+  capacities = input->inputGraph.capacities;
+  edges.clear();
 
 
   for (int i = 0; i < num_vertices; i++) {
@@ -91,7 +92,6 @@ bool DinicsSequentialSolver::BFS(int source, int sink)
         // Level of current vertex is,
         // level of parent + 1
         levels[child] = levels[current] + 1;
-
         vertexQ.push(child);
       }
     }
@@ -102,30 +102,32 @@ bool DinicsSequentialSolver::BFS(int source, int sink)
   return levels[sink] < 0 ? false : true;
 }
 
-void DinicsSequentialSolver::solve(MaxFlowInstance &input, MaxFlowSolution &output){
-  t.reset(); 
+void DinicsSequentialSolver::solve(MaxFlowInstance *input, MaxFlowSolution *output){
+
+  t.reset();
   initialize(input);
 
   int totalFlow = 0;
 
   // Augment the flow while there is path
   // from source to sink
-  while (BFS(input.source, input.sink))
+  while (BFS(input->source, input->sink))
   {
     // store how many edges are visited
     // from V { 0 to V }
-    int *start = new int[input.inputGraph.num_vertices + 1];
-    int flow = sendFlow(input.source, INT_MAX, input.sink, start);
+    int *start = new int[input->inputGraph.num_vertices + 1];
+    int flow = sendFlow(input->source, INT_MAX, input->sink, start);
 
     // while flow is not zero in graph from S to D
     while (flow > 0){
       // Add path flow to overall flow
       totalFlow += flow;
-      flow = sendFlow(input.source, INT_MAX, input.sink, start);
+      flow = sendFlow(input->source, INT_MAX, input->sink, start);
     }
   }
-  double time = t.elapsed(); 
-  printf("Dinics Time: %6fms\n", time); 
-  output.maxFlow = totalFlow;
-  output.flow = flows;
+  double time = t.elapsed();
+  printf("Dinics Time: %6fms\n", time);
+
+  output->maxFlow = totalFlow;
+  output->flow = flows;
 }
