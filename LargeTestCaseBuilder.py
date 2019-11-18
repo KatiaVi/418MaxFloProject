@@ -1,5 +1,9 @@
 import glob, os
 
+# When ran this file converts *.graph files downloaded from https://www.cc.gatech.edu/dimacs10/archive/delaunay.shtml
+# to *.txt files with DIMACS format
+# the output *.txt files are stored in the tests/ folder
+
 def convertGraphToMaxflowFormat(fileName):
 
     graphName = fileName[:-6]

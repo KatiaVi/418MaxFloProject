@@ -126,7 +126,7 @@ void DinicsSequentialSolver::solve(MaxFlowInstance *input, MaxFlowSolution *outp
     }
   }
   double time = t.elapsed();
-  printf("Dinics Time: %6fms\n", time);
+  printf("Dinics Time: %6fs\n", time);
 
   output->maxFlow = totalFlow;
   output->flow = flows;
