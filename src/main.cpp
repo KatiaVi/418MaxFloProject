@@ -48,9 +48,15 @@ void generateCapacities(int numVertices, int numEdges, float **capacities){
 int main ( int argc, char * argv[] )
 {
 
-  // Get all the Test Cases
+  // Get all the txt file Test Cases
+  stringvec allFiles;
   stringvec testFiles;
-  read_directory("tests", testFiles);
+  read_directory("tests", allFiles);
+  for (int i = 0; i < allFiles.size(); i++){
+    if (allFiles[i].find(".txt") != string::npos){
+      testFiles.push_back(allFiles[i]);
+    }
+  }
 
   // Initialize Instances of Solvers
   PushRelabelSequentialSolver prSolver;
@@ -121,11 +127,17 @@ int main ( int argc, char * argv[] )
       file.close();
     }
     inputInstance.inputGraph = testGraph1;
-
-    // Solve Maxflow with solvers
     std::cout << "Test Case: " << testFileName << "\n";
     printf("----------------------------\n");
+    std::cout << "Input Instance Info:\n";
+    std::cout << inputInstance.sink << " <- sink\n";
+    std::cout << inputInstance.source << " <- source\n";
+    std::cout << inputInstance.inputGraph.num_vertices << " <- numVertices\n";
+    std::cout << inputInstance.inputGraph.num_edges << " <- numEdges\n";
+    printf("\n");
 
+    // Solve Maxflow with solvers
+    std::cout << "Results Info:\n";
     prSolver.pushRelabel(&inputInstance, &prSolution);
     dSolver.solve(&inputInstance, &dSolution);
 
