@@ -3,7 +3,11 @@
 //
 
 #include <iostream>
-#include <boost/filesystem.hpp>
+#include <sstream>
+#include <string>
+#include <sys/types.h>
+#include <dirent.h>
+
 
 
 #include "lib/world.h"
@@ -11,24 +15,25 @@
 #include "lib/algorithms/sequential/pushrelabel.h"
 #include "lib/algorithms/sequential/dinics.h"
 
+
 #include <fstream>
-#include <boost/algorithm/string.hpp>
 
 typedef std::vector<std::string> stringvec;
-struct path_leaf_string
-{
-  std::string operator()(const boost::filesystem::directory_entry& entry) const
-  {
-    return entry.path().leaf().string();
-  }
-};
 
-void read_directory(const std::string& name, stringvec& v)
+void read_directory(const char* name, stringvec& v)
 {
-  boost::filesystem::path p(name);
-  boost::filesystem::directory_iterator start(p);
-  boost::filesystem::directory_iterator end;
-  std::transform(start, end, std::back_inserter(v), path_leaf_string());
+  DIR *dir;
+  struct dirent *ent;
+  if ((dir = opendir (name)) != NULL) {
+    /* print all the files and directories within directory */
+    while ((ent = readdir (dir)) != NULL) {
+      v.push_back(ent->d_name);
+    }
+    closedir (dir);
+  } else {
+    /* could not open directory */
+    perror ("Can't open directory");
+  }
 }
 
 
@@ -88,7 +93,9 @@ int main ( int argc, char * argv[] )
 
         if (line[0] == 'p') {
           std::vector<std::string> results;
-          boost::split(results, line, [](char c) { return c == ' '; });
+          std::istringstream iss(line);
+          for(std::string s; iss >> s; )
+            results.push_back(s);
 
           testGraph1.num_vertices = std::stoi(results[2]);
           testGraph1.num_edges = std::stoi(results[3]);
@@ -107,7 +114,9 @@ int main ( int argc, char * argv[] )
 
         if (line[0] == 'n') {
           std::vector<std::string> results;
-          boost::split(results, line, [](char c) { return c == ' '; });
+          std::istringstream iss(line);
+          for(std::string s; iss >> s; )
+            results.push_back(s);
 
           if (results[2] == "s") {
             inputInstance.source = std::stoi(results[1]) - 1;
@@ -119,7 +128,9 @@ int main ( int argc, char * argv[] )
 
         if (line[0] == 'a') {
           std::vector<std::string> results;
-          boost::split(results, line, [](char c) { return c == ' '; });
+          std::istringstream iss(line);
+          for(std::string s; iss >> s; )
+            results.push_back(s);
 
           testGraph1.capacities[std::stoi(results[1]) - 1][std::stoi(results[2]) - 1] = std::stof(results[3]);
         }
