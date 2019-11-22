@@ -2,6 +2,7 @@
 #include <cmath>
 #include <iostream>
 #include "dinics.h"
+#include <limits.h> 
 
 /* Note:
  * The code and implementation was taken from https://www.geeksforgeeks.org/dinics-algorithm-maximum-flow/
@@ -103,10 +104,11 @@ bool DinicsSequentialSolver::BFS(int source, int sink)
 }
 
 void DinicsSequentialSolver::solve(MaxFlowInstance *input, MaxFlowSolution *output){
-
+  printf("start"); 
   t.reset();
+  printf("reset timer"); 
   initialize(input);
-
+  printf("initialized"); 
   int totalFlow = 0;
 
   // Augment the flow while there is path

@@ -11,7 +11,7 @@
 #include <queue> 
 #include <limits.h> 
 
-#include "pushrelabel.h"
+#include "pushrelabel_parallel.h"
 
 using namespace std; 
 
@@ -20,7 +20,11 @@ void PushRelabelSequentialSolver::initialize(MaxFlowInstance *input) {
   d = (int*)calloc(numVertices, sizeof(int)); 
   active = (int*)calloc(numVertices, sizeof(int)); 
   excessPerVertex = (float*)calloc(numVertices, sizeof(float)); 
+  addedPerVertex = (float*)calloc(numVertices, sizeof(float));
+  isDiscovered = (bool*)calloc(numVertices, sizeof(bool));
   flows = new float*[numVertices]; 
+
+  #pragma omp parallel for
   for (int i = 0; i < numVertices; i++) { 
     flows[i] = new float[numVertices]; 
   }
@@ -30,6 +34,7 @@ void PushRelabelSequentialSolver::preflow(MaxFlowInstance *input) {
   initialize(input); 
   int numVertices = input->inputGraph.num_vertices; 
 
+  #pragma omp parallel for
   for (int i = 0; i < numVertices; i++) { 
     d[i] = 0; 
     for (int j = 0; j < numVertices; j++) { 
@@ -88,6 +93,11 @@ bool PushRelabelSequentialSolver::push(int numVertices, float **cap, int u, int 
 }
 
 void PushRelabelSequentialSolver::relabel(int numVertices, float **cap, int u) { 
+  for (int i = 0; i < numVertices; i++) { 
+    if (cap[u][i] - flows[u][i] != 0) { 
+      assert(excessPerVertex[u] > 0 && d[u] <= d[i]); 
+    }
+  }
   
   int minHeight = INT_MAX; 
   for (int v = 0; v < numVertices; v++) { 
@@ -97,7 +107,6 @@ void PushRelabelSequentialSolver::relabel(int numVertices, float **cap, int u) {
   }
   d[u] = minHeight + 1;
 }
-
 
 
 void PushRelabelSequentialSolver::pushRelabel(MaxFlowInstance *input, MaxFlowSolution *output) { 
@@ -134,7 +143,7 @@ void PushRelabelSequentialSolver::pushRelabel(MaxFlowInstance *input, MaxFlowSol
     u = existsActiveNode(input); 
   }
   double time = t.elapsed(); 
-  printf("Push-Relabel time: %6fs\n", time);
+  printf("Push-Relabel time: %6fms\n", time); 
 
   output->maxFlow = excessPerVertex[input->sink]; 
   output->flow = flows; 

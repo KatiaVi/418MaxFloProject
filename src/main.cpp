@@ -150,6 +150,7 @@ int main ( int argc, char * argv[] )
     // Solve Maxflow with solvers
     std::cout << "Results Info:\n";
     prSolver.pushRelabel(&inputInstance, &prSolution);
+    printf("before dsolve"); 
     dSolver.solve(&inputInstance, &dSolution);
 
     printf("push relabel maxflow: %f\n", prSolution.maxFlow);
