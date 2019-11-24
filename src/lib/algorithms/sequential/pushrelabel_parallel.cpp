@@ -46,6 +46,7 @@ void PushRelabelSequentialSolver::preflow(MaxFlowInstance *input) {
   // find all vertices adjacent to s 
   float **cap = input->inputGraph.capacities; 
 
+  #pragma omp parallel for
   for (int i = 0; i < numVertices; i++) { 
     if (cap[input->source][i] != 0 && (input->source != i)) { 
       // then it is an adjacent edge 

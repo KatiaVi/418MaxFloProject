@@ -45,7 +45,6 @@ float DinicsSequentialSolver::sendFlow(int current, int flow, int sink, int star
     {
       // find minimum flow from current to sink
       float curr_flow = fmin(flow, capacities[current][child] - flows[current][child]);
-
       float temp_flow = sendFlow(child, curr_flow, sink, start);
 
       // flow is greater than zero
@@ -88,6 +87,7 @@ bool DinicsSequentialSolver::BFS(int source, int sink)
     for (int i = 0; i < edges[current].size(); i++)
     {
       int child = edges[current][i];
+      
       if (levels[child] < 0  && flows[current][child] < capacities[current][child])
       {
         // Level of current vertex is,
@@ -97,18 +97,14 @@ bool DinicsSequentialSolver::BFS(int source, int sink)
       }
     }
   }
-
   // IF we can not reach to the sink we
   // return false else true
   return levels[sink] < 0 ? false : true;
 }
 
 void DinicsSequentialSolver::solve(MaxFlowInstance *input, MaxFlowSolution *output){
-  printf("start"); 
   t.reset();
-  printf("reset timer"); 
   initialize(input);
-  printf("initialized"); 
   int totalFlow = 0;
 
   // Augment the flow while there is path
@@ -118,8 +114,11 @@ void DinicsSequentialSolver::solve(MaxFlowInstance *input, MaxFlowSolution *outp
     // store how many edges are visited
     // from V { 0 to V }
     int *start = new int[input->inputGraph.num_vertices + 1];
+    for (int i = 0; i < input->inputGraph.num_vertices + 1; i++) { 
+      start[i] = 0; 
+    }
+    
     int flow = sendFlow(input->source, INT_MAX, input->sink, start);
-
     // while flow is not zero in graph from S to D
     while (flow > 0){
       // Add path flow to overall flow

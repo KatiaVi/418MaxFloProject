@@ -58,7 +58,7 @@ int main ( int argc, char * argv[] )
   stringvec testFiles;
   read_directory("tests", allFiles);
   for (int i = 0; i < allFiles.size(); i++){
-    if (allFiles[i].find(".txt") != string::npos){
+    if (allFiles[i].find("txt") != string::npos){ //@TODO: change this 
       testFiles.push_back(allFiles[i]);
     }
   }
@@ -150,12 +150,12 @@ int main ( int argc, char * argv[] )
     // Solve Maxflow with solvers
     std::cout << "Results Info:\n";
     prSolver.pushRelabel(&inputInstance, &prSolution);
-    printf("before dsolve"); 
+    std::cout << "before dsolve\n"; 
     dSolver.solve(&inputInstance, &dSolution);
 
-    printf("push relabel maxflow: %f\n", prSolution.maxFlow);
-    printf("dinic maxflow: %f\n", dSolution.maxFlow);
-    printf("\n");
+    std::cout << "push relabel maxflow: " << prSolution.maxFlow << "\n";
+    std::cout << "dinic maxflow: " << dSolution.maxFlow << "\n";
+    std::cout << "\n";
 
   }
 
