@@ -10,6 +10,7 @@
 #include <vector>
 #include <queue> 
 #include <limits.h> 
+#include <atomic> 
 
 #include "pushrelabel_parallel.h"
 
@@ -20,10 +21,13 @@ void PushRelabelSequentialSolver::initialize(MaxFlowInstance *input) {
   d = (int*)calloc(numVertices, sizeof(int)); 
   active = (int*)calloc(numVertices, sizeof(int)); 
   excessPerVertex = (float*)calloc(numVertices, sizeof(float)); 
+  copyOfExcess = (float*)calloc(numVertices, sizeof(float)); 
   addedPerVertex = (float*)calloc(numVertices, sizeof(float));
-  isDiscovered = (bool*)calloc(numVertices, sizeof(bool));
+  isDiscovered = (atomic_flag*)calloc(numVertices, sizeof(atomic_flag));
   workingSet = (int*)calloc(numVertices, sizeof(int)); 
   discoveredVertices = new int*[numVertices]; 
+  copyOfLabels = (int*)calloc(numVertices, sizeof(int)); 
+  
   flows = new float*[numVertices]; 
 
   #pragma omp parallel for
@@ -31,6 +35,7 @@ void PushRelabelSequentialSolver::initialize(MaxFlowInstance *input) {
     flows[i] = new float[numVertices]; 
     discoveredVertices[i] = new int[numVertices]; 
     workingSet[i] = -1; // initialize all to -1 so that only the active ones get added
+    isDiscovered[i] = ATOMIC_FLAG_INIT; 
   }
 }
 
@@ -126,37 +131,112 @@ void PushRelabelSequentialSolver::pushRelabel(MaxFlowInstance *input, MaxFlowSol
   
   float **cap = input->inputGraph.capacities; 
   // int u = existsActiveNode(input); 
-
-  for (int i = 0 ; i < numVertices; i++) { 
-    if (workingSet[i] != -1) { 
-      
+  while (true) {
+    //@TODO: make working set a vector to check if empty 
+    bool isEmpty = true; 
+    for (int i = 0; i < numVertices; i++) { 
+      if (workingSet[i] != -1) { 
+        isEmpty = false; 
+      }
     }
-  }
-  while (u != -1) {
-    if ((u != input->source) && (u != input->sink) && (excessPerVertex[u] > 0)) { 
-      //printf("u: %d\n", u);
-      if (!push(numVertices, cap, u, input->sink)) { 
-        //printf("relabel\n"); 
-        relabel(numVertices, cap, u); 
-      } 
+    if (isEmpty) { 
+      break; 
+    }
 
-      //testing code 
-      /* for (int i = 0; i < numVertices; i++) { 
+    for (int i = 0 ; i < numVertices; i++) { 
+      int v = i; 
+      if (workingSet[i] != -1) { // checks if the vertex is in the working set 
+        for (int j = 0 ; j < numVertices; j++) { 
+          discoveredVertices[v][j] = 0; // reinitialize - @TODO: slow? 
+        }
+        copyOfLabels[v] = d[v]; 
+        // copyOfExcess[v] = excessPerVertex[v];
+        int e = excessPerVertex[v]; // copy of excess 
+        while (e > 0) { 
+          int newLabel = numVertices; 
+          bool skipped = false; 
+          for (int w = 0; w < numVertices; w++) { 
+            if (cap[v][w] > 0) { 
+              if (e == 0) { 
+                break; // has already pushed out all excess flow 
+              }
+              bool admissible = (d[v] == d[w] +1); 
+              if (excessPerVertex[w]) { 
+                bool win = (d[v] == d[w]+1) || (d[v] < d[w]-1) || (d[v] == d[w] and v < w); 
+                if (admissible && !win) { 
+                  skipped = true; 
+                  continue; // continue to the next edge 
+                }  
+              }
+              if (admissible && (cap[v][w] - flows[v][w] > 0)) { 
+                float delta = min(cap[v][w] - flows[v][w], excessPerVertex[v]); 
+                // add residual flow 
+                flows[v][w] += delta; 
+                flows[v][w] -= delta; 
+
+                e -= delta; 
+                // atomic fetch-and-add
+                addedPerVertex[w] += delta; 
+                if (w != input->sink && isDiscovered[w].test_and_set()) {
+                  discoveredVertices[v][w] = 1; // @TODO: make discoveredVertices a vector? 
+                }
+              } 
+              if (cap[v][w] - flows[v][w] > 0 && d[w] >= copyOfLabels[v]) { 
+                newLabel = min(newLabel, d[w]+1); 
+              }
+            }
+          }
+          if (e == 0 || skipped) { 
+            break; 
+          }
+          copyOfLabels[v] = newLabel; 
+          if (copyOfLabels[v] == numVertices) { 
+            break; 
+          }
+        }
+        addedPerVertex[v] = e - excessPerVertex[v]; 
+        if (e and isDiscovered[v].test_and_set()) { 
+          discoveredVertices[v][v] = 1; 
+        }
+      }
+    }
+
+    // the update of everything 
+    for (int i = 0; i < numVertices; i++) { 
+      if (workingSet[i] != -1) { 
+        d[i] = copyOfLabels[i]; 
+        excessPerVertex[i] += addedPerVertex[i]; 
+        addedPerVertex[i] = 0; 
+        isDiscovered[i].clear(); 
+        // the concat of the newly discovered vertices to the working set 
         for (int j = 0; j < numVertices; j++) { 
-          if (flows[i][j] != 0) { 
-            printf("flows[%d][%d]: %f\n", i, j, flows[i][j]); 
+          if (discoveredVertices[i][j] != -1 && d[i] < numVertices) { 
+            workingSet[j] = j; 
           }
         }
       }
-      for (int i = 0; i < numVertices; i++) { 
-        printf("d[%d]: %d\n", i, d[i]); 
-      }
-      for (int i = 0; i < numVertices; i++) { 
-        printf("excessPerVertex[%d]: %f\n", i, excessPerVertex[i]); 
-      } */ 
     }
-    u = existsActiveNode(input); 
-  }
+    
+
+    for (int i = 0; i < numVertices; i++) { 
+      if (workingSet[i] != -1) { 
+        excessPerVertex[i] += addedPerVertex[i];
+        addedPerVertex[i] = 0; 
+        isDiscovered[i].clear(); 
+      }
+    }
+  } 
+  // old code 
+  // while (u != -1) {
+  //   if ((u != input->source) && (u != input->sink) && (excessPerVertex[u] > 0)) { 
+  //     //printf("u: %d\n", u);
+  //     if (!push(numVertices, cap, u, input->sink)) { 
+  //       //printf("relabel\n"); 
+  //       relabel(numVertices, cap, u); 
+  //     } 
+  //   }
+  //   u = existsActiveNode(input); 
+  // }
   double time = t.elapsed(); 
   printf("Push-Relabel time: %6fms\n", time); 
 

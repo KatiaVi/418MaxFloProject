@@ -1,5 +1,6 @@
 #include "../../world.h"
 #include "../../timing.h"
+#include <atomic>
 using namespace std; 
 
 class PushRelabelSequentialSolver{ 
@@ -11,8 +12,10 @@ class PushRelabelSequentialSolver{
     float *excessPerVertex; // excess flow on each vertex also exists 
     int *d; // the labels 
     float *addedPerVertex; // added for prsn 
-    bool *isDiscovered; // added for prsn 
+    atomic_flag *isDiscovered; // added for prsn 
     int **discoveredVertices; 
+    int *copyOfLabels; 
+    float *copyOfExcess; 
 
     int *active; // replace with a queue 
     Timer t; 

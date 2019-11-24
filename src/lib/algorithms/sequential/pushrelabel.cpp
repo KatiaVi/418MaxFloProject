@@ -152,7 +152,7 @@ void PushRelabelSequentialSolver::pushRelabel(MaxFlowInstance *input, MaxFlowSol
     // u = existsActiveNode(input); 
   }
   double time = t.elapsed(); 
-  printf("Push-Relabel time: %6fs\n", time);
+  printf("Push-Relabel time: %6fs\n", time); 
 
   output->maxFlow = excessPerVertex[input->sink]; 
   output->flow = flows; 
