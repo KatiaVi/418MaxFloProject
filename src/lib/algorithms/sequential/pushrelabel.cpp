@@ -51,6 +51,11 @@ void PushRelabelSequentialSolver::preflow(MaxFlowInstance *input) {
       flows[i][input->source] = -flows[input->source][i]; 
     }
   }
+  for (int i = 0; i < numVertices; i++) { 
+    if (i != input->source && i != input->sink && excessPerVertex[i] > 0) { 
+      activeQueue.push(i); 
+    }
+  }
   
   // initialize active nodes to be all that have non zero excess
 }
@@ -69,14 +74,23 @@ bool PushRelabelSequentialSolver::push(int numVertices, float **cap, int u, int 
   
   for (int v = 0; v < numVertices; v++) { 
         
-    if (d[u] > d[v] && (cap[u][v] - flows[u][v] > 0)) { // push if the height of the adjacent is smaller
+    if (d[u] == d[v]+1 && (cap[u][v] - flows[u][v] > 0)) { // push if the height of the adjacent is smaller
       // push flow = min(remaining flow on edge, excess flow)
       float flow = min(cap[u][v] - flows[u][v], excessPerVertex[u]); //@TODO: bug: adding 0 here 
       // reduce excess flow for overflowing vertex 
       excessPerVertex[u] -= flow; 
 
+      if (excessPerVertex[u] > 0) { 
+        activeQueue.push(v);
+      }
+
       // increase excess flow for adjacent 
+      
+      // int oldExcess = excessPerVertex[v]; 
       excessPerVertex[v] += flow; 
+      if (excessPerVertex[v] > 0) { 
+         activeQueue.push(v);
+      }
 
       // add residual flow 
       flows[u][v] += flow; 
@@ -84,7 +98,7 @@ bool PushRelabelSequentialSolver::push(int numVertices, float **cap, int u, int 
       return true; 
     }
   }
-    return false; 
+  return false; 
 }
 
 void PushRelabelSequentialSolver::relabel(int numVertices, float **cap, int u) { 
@@ -96,6 +110,7 @@ void PushRelabelSequentialSolver::relabel(int numVertices, float **cap, int u) {
     } 
   }
   d[u] = minHeight + 1;
+  activeQueue.push(u); 
 }
 
 
@@ -104,12 +119,15 @@ void PushRelabelSequentialSolver::pushRelabel(MaxFlowInstance *input, MaxFlowSol
   t.reset();
   preflow(input); 
   int numVertices = input->inputGraph.num_vertices;
-  
-  float **cap = input->inputGraph.capacities; 
-  int u = existsActiveNode(input); 
 
-  while (u != -1) {
-    if ((u != input->source) && (u != input->sink) && (excessPerVertex[u] > 0)) { 
+  float **cap = input->inputGraph.capacities; 
+  // int u = existsActiveNode(input); 
+
+  while (!activeQueue.empty()) {
+    int u = activeQueue.front(); 
+    activeQueue.pop(); 
+
+    while ((u != input->source) && (u != input->sink) && (excessPerVertex[u] > 0)) { 
       //printf("u: %d\n", u);
       if (!push(numVertices, cap, u, input->sink)) { 
         //printf("relabel\n"); 
@@ -131,7 +149,7 @@ void PushRelabelSequentialSolver::pushRelabel(MaxFlowInstance *input, MaxFlowSol
         printf("excessPerVertex[%d]: %f\n", i, excessPerVertex[i]); 
       } */ 
     }
-    u = existsActiveNode(input); 
+    // u = existsActiveNode(input); 
   }
   double time = t.elapsed(); 
   printf("Push-Relabel time: %6fs\n", time);

@@ -22,11 +22,15 @@ void PushRelabelSequentialSolver::initialize(MaxFlowInstance *input) {
   excessPerVertex = (float*)calloc(numVertices, sizeof(float)); 
   addedPerVertex = (float*)calloc(numVertices, sizeof(float));
   isDiscovered = (bool*)calloc(numVertices, sizeof(bool));
+  workingSet = (int*)calloc(numVertices, sizeof(int)); 
+  discoveredVertices = new int*[numVertices]; 
   flows = new float*[numVertices]; 
 
   #pragma omp parallel for
   for (int i = 0; i < numVertices; i++) { 
     flows[i] = new float[numVertices]; 
+    discoveredVertices[i] = new int[numVertices]; 
+    workingSet[i] = -1; // initialize all to -1 so that only the active ones get added
   }
 }
 
@@ -38,7 +42,8 @@ void PushRelabelSequentialSolver::preflow(MaxFlowInstance *input) {
   for (int i = 0; i < numVertices; i++) { 
     d[i] = 0; 
     for (int j = 0; j < numVertices; j++) { 
-      flows[i][j] = 0; // flow going from vertex i to vertex j is 0 
+      flows[i][j] = 0; // flow going from vertex i to vertex j is 0
+      discoveredVertices[i][j] = -1;  
     }
   }
 
@@ -57,7 +62,11 @@ void PushRelabelSequentialSolver::preflow(MaxFlowInstance *input) {
       flows[i][input->source] = -flows[input->source][i]; 
     }
   }
-  
+  for (int i = 0; i < numVertices; i++) { 
+    if (i != input->source && i != input->sink && excessPerVertex[i] > 0) { 
+      workingSet[i] = i; 
+    }
+  }
   // initialize active nodes to be all that have non zero excess
 }
 
@@ -75,7 +84,7 @@ bool PushRelabelSequentialSolver::push(int numVertices, float **cap, int u, int 
   
   for (int v = 0; v < numVertices; v++) { 
         
-    if (d[u] > d[v] && (cap[u][v] - flows[u][v] > 0)) { // push if the height of the adjacent is smaller
+    if (d[u] == d[v]+1 && (cap[u][v] - flows[u][v] > 0)) { // push if the height of the adjacent is smaller
       // push flow = min(remaining flow on edge, excess flow)
       float flow = min(cap[u][v] - flows[u][v], excessPerVertex[u]); //@TODO: bug: adding 0 here 
       // reduce excess flow for overflowing vertex 
@@ -116,8 +125,13 @@ void PushRelabelSequentialSolver::pushRelabel(MaxFlowInstance *input, MaxFlowSol
   int numVertices = input->inputGraph.num_vertices;
   
   float **cap = input->inputGraph.capacities; 
-  int u = existsActiveNode(input); 
+  // int u = existsActiveNode(input); 
 
+  for (int i = 0 ; i < numVertices; i++) { 
+    if (workingSet[i] != -1) { 
+      
+    }
+  }
   while (u != -1) {
     if ((u != input->source) && (u != input->sink) && (excessPerVertex[u] > 0)) { 
       //printf("u: %d\n", u);

@@ -12,10 +12,11 @@ class PushRelabelSequentialSolver{
     int *d; // the labels 
     float *addedPerVertex; // added for prsn 
     bool *isDiscovered; // added for prsn 
+    int **discoveredVertices; 
 
     int *active; // replace with a queue 
     Timer t; 
-
+    int *workingSet;  
     void initialize(MaxFlowInstance *input);
     void preflow(MaxFlowInstance *input);
     bool push(int numVertices, float **cap, int u, int sink);
