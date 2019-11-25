@@ -11,9 +11,11 @@
 
 
 #include "lib/world.h"
-#include "lib/algorithms/sequential/genetic.h"
+//#include "lib/algorithms/sequential/genetic.h"
 #include "lib/algorithms/sequential/pushrelabel.h"
 #include "lib/algorithms/sequential/dinics.h"
+#include "lib/algorithms/parallel/pushrelabel_parallel.h"
+
 
 
 #include <fstream>
@@ -50,21 +52,21 @@ void generateCapacities(int numVertices, int numEdges, float **capacities){
   }
 }
 
-int main ( int argc, char * argv[] )
-{
+int main ( int argc, char * argv[] ) {
 
   // Get all the txt file Test Cases
   stringvec allFiles;
   stringvec testFiles;
   read_directory("tests", allFiles);
   for (int i = 0; i < allFiles.size(); i++){
-    if (allFiles[i].find("small1.txt") != string::npos){ //@TODO: change this 
+    if (allFiles[i].find("txt") != string::npos){ //@TODO: change this
       testFiles.push_back(allFiles[i]);
     }
   }
 
   // Initialize Instances of Solvers
   PushRelabelSequentialSolver prSolver;
+  PushRelabelParallelSolver parallelPrSolver;
   DinicsSequentialSolver dSolver;
 
   for (std::string testFileName : testFiles) {
@@ -74,6 +76,7 @@ int main ( int argc, char * argv[] )
     Graph testGraph1;
     float **capacities1;
     MaxFlowSolution prSolution;
+    MaxFlowSolution parallelPrSolution;
     MaxFlowSolution dSolution;
 
 
@@ -137,6 +140,7 @@ int main ( int argc, char * argv[] )
       }
       file.close();
     }
+
     inputInstance.inputGraph = testGraph1;
     std::cout << "Test Case: " << testFileName << "\n";
     printf("----------------------------\n");
@@ -150,10 +154,11 @@ int main ( int argc, char * argv[] )
     // Solve Maxflow with solvers
     std::cout << "Results Info:\n";
     prSolver.pushRelabel(&inputInstance, &prSolution);
-    std::cout << "before dsolve\n"; 
+    parallelPrSolver.pushRelabel(&inputInstance, &parallelPrSolution);
     dSolver.solve(&inputInstance, &dSolution);
 
     std::cout << "push relabel maxflow: " << prSolution.maxFlow << "\n";
+    std::cout << "parallel push relabel maxflow: " << parallelPrSolution.maxFlow << "\n";
     std::cout << "dinic maxflow: " << dSolution.maxFlow << "\n";
     std::cout << "\n";
 

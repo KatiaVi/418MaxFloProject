@@ -3,7 +3,7 @@
 #include <atomic>
 using namespace std; 
 
-class PushRelabelSequentialSolver{ 
+class PushRelabelParallelSolver{
   public: 
     void pushRelabel(MaxFlowInstance *input, MaxFlowSolution *output); 
   private:
@@ -12,7 +12,7 @@ class PushRelabelSequentialSolver{
     float *excessPerVertex; // excess flow on each vertex also exists 
     int *d; // the labels 
     float *addedPerVertex; // added for prsn 
-    atomic_flag *isDiscovered; // added for prsn 
+    atomic_flag *isDiscovered; // added for prsn
     int **discoveredVertices; 
     int *copyOfLabels; 
     float *copyOfExcess; 
