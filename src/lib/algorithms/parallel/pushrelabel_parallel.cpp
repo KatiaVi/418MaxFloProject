@@ -108,11 +108,6 @@ bool PushRelabelSequentialSolver::push(int numVertices, float **cap, int u, int 
 }
 
 void PushRelabelSequentialSolver::relabel(int numVertices, float **cap, int u) { 
-  for (int i = 0; i < numVertices; i++) { 
-    if (cap[u][i] - flows[u][i] != 0) { 
-      assert(excessPerVertex[u] > 0 && d[u] <= d[i]); 
-    }
-  }
   
   int minHeight = INT_MAX; 
   for (int v = 0; v < numVertices; v++) { 
