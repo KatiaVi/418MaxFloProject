@@ -127,10 +127,7 @@ void PushRelabelParallelSolver::pushRelabel(MaxFlowInstance *input, MaxFlowSolut
   
   float **cap = input->inputGraph.capacities; 
   // int u = existsActiveNode(input);
-  int ctr = 0;
   while (true) {
-    ctr ++;
-//    std::cout << ctr << "\n";
     for (int k=0; k < numVertices; k++){
       std::cout << d[k] << " ";
     }
@@ -149,29 +146,31 @@ void PushRelabelParallelSolver::pushRelabel(MaxFlowInstance *input, MaxFlowSolut
 //    #pragma omp parallel for (local copy of isDiscovered[i])
     for (int i = 0 ; i < numVertices; i++) {
       int v = i;
-      std::cout << v << "<-- new v\n";
 
       if (workingSet[i] != -1) { // checks if the vertex is in the working set 
+        printf("new v from working set: %d\n", v); 
         for (int j = 0 ; j < numVertices; j++) { 
-          discoveredVertices[v][j] = 0; // reinitialize - @TODO: slow? 
+          discoveredVertices[v][j] = -1; // reinitialize - @TODO: slow? 
         }
         copyOfLabels[v] = d[v]; 
         // copyOfExcess[v] = excessPerVertex[v];
-        int e = excessPerVertex[v]; // copy of excess 
+        float e = excessPerVertex[v]; // copy of excess 
         while (e > 0) { 
           int newLabel = numVertices; 
           bool skipped = false;
 
- //         #pragma omp parallel for (local copy of isDiscovered[w])
+          // #pragma omp parallel for (local copy of isDiscovered[w])
           for (int w = 0; w < numVertices; w++) { 
-            if (cap[v][w] > 0) { 
+            printf("testing edge (%d, %d)\n", v, w); 
+            if (cap[v][w] > 0 && cap[v][w] - flows[v][w] > 0) { // it's a residual edge 
               if (e == 0) {
-                std::cout << "no excess flow\n";
+                printf("excess[%d] is 0\n", v); 
                 workingSet[v] = -1;
                 break; // has already pushed out all excess flow 
               }
               bool admissible = (copyOfLabels[v] == d[w] + 1);
-              std::cout << admissible << "<-- admissible\n";
+              printf("edge from %d to %d is admissible: %d\n", v, w, admissible); 
+              // std::cout << admissible << "<-- admissible\n";
               if (excessPerVertex[w]) {
                 bool win = (d[v] == d[w]+1) || (d[v] < d[w]-1) || (d[v] == d[w] and v < w);
                 if (admissible && !win) { 
@@ -181,39 +180,48 @@ void PushRelabelParallelSolver::pushRelabel(MaxFlowInstance *input, MaxFlowSolut
               }
 
               if (admissible && (cap[v][w] - flows[v][w] > 0)) {
-                // NOT HERE
                 float delta = min(cap[v][w] - flows[v][w], excessPerVertex[v]); 
+                printf("pushing %f flow from %d to %d\n", delta, v, w); 
                 // add residual flow 
                 flows[v][w] += delta; 
-                flows[v][w] -= delta; 
+                flows[w][v] -= delta; 
 
-                e -= delta;
-                std::cout << e << " <-- excess flow rn\n";
-                // atomic fetch-and-add
+                e -= delta; 
+                printf("new excess flow for %d: %f\n", v, e); 
+                //@TODO: atomic fetch-and-add
                 addedPerVertex[w] += delta;  // MAKE ATOMIC
-                if (w != input->sink && isDiscovered[w].test_and_set()) {
+                if (w != input->sink && (isDiscovered[w]).test_and_set()) {
                   discoveredVertices[v][w] = 1; // @TODO: make discoveredVertices a vector?
                 }
+                printf("AFTER PUSH - e: %f\n", v, e);
+                printf("AFTER PUSH - addedPerVertex[%d]: %f\n", w, addedPerVertex[w]);
               }
-              std::cout << d[w] << "<- d[w]\n";
+              // std::cout << d[w] << "<- d[w]\n";
               if (cap[v][w] - flows[v][w] > 0 && d[w] >= copyOfLabels[v]) {
                 // NOT HERE
 
                 newLabel = min(newLabel, d[w]+1);
-                std::cout << newLabel << "<- new label " << d[w] << "<- d[w] " << w << "<- w " << v << "<-- v\n";
+                // printf("new label for %d is: %d\n", v, newLabel); 
+                // std::cout << "new label: " << newLabel << d[w] << "<- d[w] " << w << "<- w " << v << "<-- v\n";
               }
             }
           }
+
           if (e == 0 || skipped) {
+            if (e == 0) { 
+              workingSet[v] = -1; // we may be removing it in the wrong place since the update depends on things still in working set 
+            }
             break;
           }
-          std::cout << newLabel << " newLabel after for loop\n";
+          // std::cout << newLabel << " newLabel after for loop\n";
+          printf("new label for %d is: %d\n", v, newLabel);
           copyOfLabels[v] = newLabel; 
           if (copyOfLabels[v] == numVertices) {
             break;
           }
         }
-        addedPerVertex[v] = e - excessPerVertex[v]; 
+        addedPerVertex[v] = e - excessPerVertex[v]; // @TODO: oh this is the amount added to v? 
+        printf("addedPerVertex[%d]: %f\n", v, addedPerVertex[v]); 
         if (e > 0 and isDiscovered[v].test_and_set()) {
           discoveredVertices[v][v] = 1; 
         }
@@ -222,26 +230,32 @@ void PushRelabelParallelSolver::pushRelabel(MaxFlowInstance *input, MaxFlowSolut
 
     }
 
+    printf("updating everything\n"); 
     // the update of everything
-//    #pragma omp parallel for (local copy of isDiscovered[i])
-    std::cout<< "Updates to d\n";
-
+    // #pragma omp parallel for (local copy of isDiscovered[i])
     for (int i = 0; i < numVertices; i++) { 
-      if (workingSet[i] != -1 && d[i] < numVertices) {
-        d[i] = copyOfLabels[i];
+      // if (workingSet[i] != -1) { 
+        d[i] = copyOfLabels[i]; // 2 was removed from the working set too early to have its copy of labels be updated 
         std::cout << i << ": " << d[i] << " ";
         excessPerVertex[i] += addedPerVertex[i]; 
         addedPerVertex[i] = 0; 
         isDiscovered[i].clear(); 
+      // }
+      for (int k = 0; k < numVertices; k++) { 
+        printf("d[%d]: %d\n", k, d[k]); 
+      }
+      if (workingSet[i] != -1 && d[i] < numVertices) { 
+        printf("here\n"); 
         // the concat of the newly discovered vertices to the working set 
         for (int j = 0; j < numVertices; j++) { 
+          printf("%d has these discoveredVertices[%d][%d]: %d\n", i, i, j, discoveredVertices[i][j]); 
           if (discoveredVertices[i][j] != -1) {
             workingSet[j] = j; 
           }
         }
-      }
-      else{
-        workingSet[i] = -1;
+      } 
+      else { // take things out of the working set 
+        workingSet[i] = -1; //@TODO: not sure why they aren't just recalculating the workingSet by looking at the excesses (why the discovered vertices thing?)
       }
     }
     std::cout<< "\n";
