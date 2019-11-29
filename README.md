@@ -18,7 +18,7 @@ In the directory where you created the build directory:
 
 #### To Run a Specific Maxflow Algorithm
 In the directory where you created the build directory:
-(i.e. sequentual dinics)
+(i.e. sequential dinics)
 ```
 ./maxflow -seq dinics
 ```
