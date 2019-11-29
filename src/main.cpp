@@ -4,21 +4,18 @@
 
 #include <iostream>
 #include <sstream>
-#include <string>
+#include <fstream>
+#include <stdio.h>
+#include <string.h>
 #include <sys/types.h>
 #include <dirent.h>
 
-
-
 #include "lib/world.h"
-//#include "lib/algorithms/sequential/genetic.h"
 #include "lib/algorithms/sequential/pushrelabel.h"
 #include "lib/algorithms/sequential/dinics.h"
 #include "lib/algorithms/parallel/pushrelabel_parallel.h"
+#include "lib/algorithms/parallel/dinics_parallel.h"
 
-
-
-#include <fstream>
 
 typedef std::vector<std::string> stringvec;
 
@@ -59,7 +56,7 @@ int main ( int argc, char * argv[] ) {
   stringvec testFiles;
   read_directory("tests", allFiles);
   for (int i = 0; i < allFiles.size(); i++){
-    if (allFiles[i].find("small2.txt") != string::npos){ //@TODO: change this
+    if (allFiles[i].find("delaunay_n16.txt") != string::npos){ //@TODO: change this to run specific test cases
       testFiles.push_back(allFiles[i]);
     }
   }
@@ -68,6 +65,7 @@ int main ( int argc, char * argv[] ) {
   PushRelabelSequentialSolver prSolver;
   PushRelabelParallelSolver parallelPrSolver;
   DinicsSequentialSolver dSolver;
+  DinicsParallelSolver parallelDSolver;
 
   for (std::string testFileName : testFiles) {
 
@@ -78,6 +76,7 @@ int main ( int argc, char * argv[] ) {
     MaxFlowSolution prSolution;
     MaxFlowSolution parallelPrSolution;
     MaxFlowSolution dSolution;
+    MaxFlowSolution parallelDSolution;
 
 
     // Open and Read File containing Test Case
@@ -153,13 +152,41 @@ int main ( int argc, char * argv[] ) {
 
     // Solve Maxflow with solvers
     std::cout << "Results Info:\n";
-    prSolver.pushRelabel(&inputInstance, &prSolution);
-    parallelPrSolver.pushRelabel(&inputInstance, &parallelPrSolution);
-    dSolver.solve(&inputInstance, &dSolution);
 
-    std::cout << "push relabel maxflow: " << prSolution.maxFlow << "\n";
-    std::cout << "parallel push relabel maxflow: " << parallelPrSolution.maxFlow << "\n";
-    std::cout << "dinic maxflow: " << dSolution.maxFlow << "\n";
+    if (argc == 1) {
+      prSolver.pushRelabel(&inputInstance, &prSolution);
+      std::cout << "push relabel maxflow: " << prSolution.maxFlow << "\n";
+
+      parallelPrSolver.pushRelabel(&inputInstance, &parallelPrSolution);
+      std::cout << "parallel push relabel maxflow: " << parallelPrSolution.maxFlow << "\n";
+
+      dSolver.solve(&inputInstance, &dSolution);
+      std::cout << "dinic maxflow: " << dSolution.maxFlow << "\n";
+
+      parallelDSolver.solve(&inputInstance, &parallelDSolution);
+      std::cout << "parallel dinic maxflow: " << parallelDSolution.maxFlow << "\n";
+    }
+    else if (strcmp(argv[1], "-seq") == 0){
+      if (strcmp(argv[2], "dinics") == 0){
+        dSolver.solve(&inputInstance, &dSolution);
+        std::cout << "dinic maxflow: " << dSolution.maxFlow << "\n";
+      }
+      if (strcmp(argv[2], "pushrelabel") == 0){
+        prSolver.pushRelabel(&inputInstance, &prSolution);
+        std::cout << "push relabel maxflow: " << prSolution.maxFlow << "\n";
+      }
+    }
+
+    else if (strcmp(argv[1], "-par") == 0){
+      if (strcmp(argv[2], "dinics") == 0){
+        parallelDSolver.solve(&inputInstance, &parallelDSolution);
+        std::cout << "parallel dinic maxflow: " << parallelDSolution.maxFlow << "\n";
+      }
+      if (strcmp(argv[2], "pushrelabel") == 0){
+        parallelPrSolver.pushRelabel(&inputInstance, &parallelPrSolution);
+        std::cout << "parallel push relabel maxflow: " << parallelPrSolution.maxFlow << "\n";
+      }
+    }
     std::cout << "\n";
 
   }

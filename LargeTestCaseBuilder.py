@@ -6,8 +6,10 @@ import glob, os
 
 def convertGraphToMaxflowFormat(fileName):
 
-    graphName = fileName[:-6]
-    maxFlowGraphFile = open(graphName + ".txt", "w")
+    dir_path = 'tests/'
+    filepath = fileName.split('/')
+    graphName = filepath[1][:-6]
+    maxFlowGraphFile = open(os.path.join(dir_path, graphName + ".txt"), "w")
 
     with open(fileName) as fp:
         line = fp.readline()
@@ -28,9 +30,9 @@ def convertGraphToMaxflowFormat(fileName):
     maxFlowGraphFile.close()
 
 
+
 def main():
-    os.chdir("tests")
-    for file in glob.glob("*.graph"):
+    for file in glob.glob("raw_test_files/*.graph"):
         print(file)
         convertGraphToMaxflowFormat(file)
 
