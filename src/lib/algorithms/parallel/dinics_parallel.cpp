@@ -15,7 +15,7 @@
 void DinicsParallelSolver::initialize(MaxFlowInstance *input){
   num_vertices = input->inputGraph.num_vertices;
   levels = new int[num_vertices];
-  flows = new float*[num_vertices];
+  flows = new int*[num_vertices];
   capacities = input->inputGraph.capacities;
   edges.clear();
 
@@ -23,7 +23,7 @@ void DinicsParallelSolver::initialize(MaxFlowInstance *input){
   for (int i = 0; i < num_vertices; i++) {
     int tid = omp_get_thread_num();
     std::cout << tid << "<-- thread id\n";
-    flows[i] = new float[num_vertices];
+    flows[i] = new int[num_vertices];
     std::vector<int> adj;
     for (int j = 0; j < num_vertices; j++) {
       flows[i][j] = 0;
@@ -36,7 +36,7 @@ void DinicsParallelSolver::initialize(MaxFlowInstance *input){
   }
 }
 
-float DinicsParallelSolver::sendFlow(int current, int flow, int sink, int start[])
+int DinicsParallelSolver::sendFlow(int current, int flow, int sink, int start[])
 {
   // Sink reached
   if (current == sink)
@@ -50,8 +50,8 @@ float DinicsParallelSolver::sendFlow(int current, int flow, int sink, int start[
     if (levels[child] == levels[current]+1 && flows[current][child] < capacities[current][child])
     {
       // find minimum flow from current to sink
-      float curr_flow = fmin(flow, capacities[current][child] - flows[current][child]);
-      float temp_flow = sendFlow(child, curr_flow, sink, start);
+      int curr_flow = fmin(flow, capacities[current][child] - flows[current][child]);
+      int temp_flow = sendFlow(child, curr_flow, sink, start);
 
       // flow is greater than zero
       if (temp_flow > 0)

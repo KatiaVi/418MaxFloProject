@@ -12,7 +12,7 @@
 
 #include "lib/world.h"
 #include "lib/algorithms/sequential/pushrelabel.h"
-//#include "lib/algorithms/sequential/dinics.h"
+#include "lib/algorithms/sequential/dinics.h"
 #include "lib/algorithms/parallel/pushrelabel_parallel.h"
 #include "lib/algorithms/parallel/dinics_parallel.h"
 

@@ -15,13 +15,13 @@ class DinicsParallelSolver {
  private:
   int num_vertices;
   int *levels; // levels of a node
-  float **flows; // flow solution
-  float **capacities;
+  int **flows; // flow solution
+  int **capacities;
   std::vector<std::vector<int>> edges; // index = vertex and the element is an array of vertices that vertex is adjacent to
   Timer t; 
 
   void initialize(MaxFlowInstance *input);
   bool BFS(int source, int sink);
-  float sendFlow(int currentVertex, int flow, int sink, int *start);
+  int sendFlow(int currentVertex, int flow, int sink, int *start);
 };
 
