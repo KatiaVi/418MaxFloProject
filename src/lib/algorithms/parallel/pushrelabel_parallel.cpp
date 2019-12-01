@@ -20,19 +20,19 @@ void PushRelabelParallelSolver::initialize(MaxFlowInstance *input) {
   int numVertices = input->inputGraph.num_vertices;
   d = (int*)calloc(numVertices, sizeof(int)); 
   active = (int*)calloc(numVertices, sizeof(int)); 
-  excessPerVertex = (float*)calloc(numVertices, sizeof(float)); 
-  copyOfExcess = (float*)calloc(numVertices, sizeof(float)); 
-  addedPerVertex = (float*)calloc(numVertices, sizeof(float));
+  excessPerVertex = (int*)calloc(numVertices, sizeof(int)); 
+  copyOfExcess = (int*)calloc(numVertices, sizeof(int)); 
+  addedPerVertex = (int*)calloc(numVertices, sizeof(int));
   isDiscovered = (atomic_flag*)malloc(numVertices*sizeof(atomic_flag));
   workingSet = (int*)calloc(numVertices, sizeof(int)); 
   discoveredVertices = new int*[numVertices]; 
   copyOfLabels = (int*)calloc(numVertices, sizeof(int)); 
   
-  flows = new float*[numVertices]; 
+  flows = new int*[numVertices]; 
 
 //  #pragma omp parallel for (local copy of isDiscovered[i])
   for (int i = 0; i < numVertices; i++) { 
-    flows[i] = new float[numVertices]; 
+    flows[i] = new int[numVertices]; 
     discoveredVertices[i] = new int[numVertices]; 
     workingSet[i] = -1; // initialize all to -1 so that only the active ones get added
     isDiscovered[i].clear();
@@ -53,15 +53,16 @@ void PushRelabelParallelSolver::preflow(MaxFlowInstance *input) {
   }
 
   d[input->source] = numVertices; 
+  copyOfLabels[input->source] = numVertices; 
   // find all vertices adjacent to s 
-  float **cap = input->inputGraph.capacities; 
+  int **cap = input->inputGraph.capacities; 
 
 //  #pragma omp parallel for
   for (int i = 0; i < numVertices; i++) { 
     if (cap[input->source][i] != 0 && (input->source != i)) { 
       // then it is an adjacent edge 
       flows[input->source][i] = cap[input->source][i]; 
-      //@TODO: make sure i have floats for the flows 
+      //@TODO: make sure i have ints for the flows 
       excessPerVertex[i] = flows[input->source][i];
       // add residual flow 
       flows[i][input->source] = -flows[input->source][i]; 
@@ -86,13 +87,13 @@ int PushRelabelParallelSolver::existsActiveNode(MaxFlowInstance *input) {
   return -1; 
 }
 
-bool PushRelabelParallelSolver::push(int numVertices, float **cap, int u, int sink) {
+bool PushRelabelParallelSolver::push(int numVertices, int **cap, int u, int sink) {
   
   for (int v = 0; v < numVertices; v++) { 
         
     if (d[u] == d[v]+1 && (cap[u][v] - flows[u][v] > 0)) { // push if the height of the adjacent is smaller
       // push flow = min(remaining flow on edge, excess flow)
-      float flow = min(cap[u][v] - flows[u][v], excessPerVertex[u]); //@TODO: bug: adding 0 here 
+      int flow = min(cap[u][v] - flows[u][v], excessPerVertex[u]); //@TODO: bug: adding 0 here 
       // reduce excess flow for overflowing vertex 
       excessPerVertex[u] -= flow; 
 
@@ -108,7 +109,7 @@ bool PushRelabelParallelSolver::push(int numVertices, float **cap, int u, int si
     return false; 
 }
 
-void PushRelabelParallelSolver::relabel(int numVertices, float **cap, int u) {
+void PushRelabelParallelSolver::relabel(int numVertices, int **cap, int u) {
   
   int minHeight = INT_MAX; 
   for (int v = 0; v < numVertices; v++) { 
@@ -125,7 +126,7 @@ void PushRelabelParallelSolver::pushRelabel(MaxFlowInstance *input, MaxFlowSolut
   preflow(input); 
   int numVertices = input->inputGraph.num_vertices;
   
-  float **cap = input->inputGraph.capacities; 
+  int **cap = input->inputGraph.capacities; 
   // int u = existsActiveNode(input);
   while (true) {
     for (int k=0; k < numVertices; k++){
@@ -154,7 +155,7 @@ void PushRelabelParallelSolver::pushRelabel(MaxFlowInstance *input, MaxFlowSolut
         }
         copyOfLabels[v] = d[v]; 
         // copyOfExcess[v] = excessPerVertex[v];
-        float e = excessPerVertex[v]; // copy of excess 
+        int e = excessPerVertex[v]; // copy of excess 
         while (e > 0) { 
           int newLabel = numVertices; 
           bool skipped = false;
@@ -165,7 +166,7 @@ void PushRelabelParallelSolver::pushRelabel(MaxFlowInstance *input, MaxFlowSolut
             if (cap[v][w] > 0 && cap[v][w] - flows[v][w] > 0) { // it's a residual edge 
               if (e == 0) {
                 printf("excess[%d] is 0\n", v); 
-                workingSet[v] = -1;
+                //workingSet[v] = -1;
                 break; // has already pushed out all excess flow 
               }
               bool admissible = (copyOfLabels[v] == d[w] + 1);
@@ -180,7 +181,7 @@ void PushRelabelParallelSolver::pushRelabel(MaxFlowInstance *input, MaxFlowSolut
               }
 
               if (admissible && (cap[v][w] - flows[v][w] > 0)) {
-                float delta = min(cap[v][w] - flows[v][w], excessPerVertex[v]); 
+                int delta = min(cap[v][w] - flows[v][w], excessPerVertex[v]); 
                 printf("pushing %f flow from %d to %d\n", delta, v, w); 
                 // add residual flow 
                 flows[v][w] += delta; 
@@ -190,7 +191,9 @@ void PushRelabelParallelSolver::pushRelabel(MaxFlowInstance *input, MaxFlowSolut
                 printf("new excess flow for %d: %f\n", v, e); 
                 //@TODO: atomic fetch-and-add
                 addedPerVertex[w] += delta;  // MAKE ATOMIC
-                if (w != input->sink && (isDiscovered[w]).test_and_set()) {
+                
+                if (w != input->sink && (isDiscovered[w]).test_and_set()) { //@TODO ???
+                  printf("HERE\n"); 
                   discoveredVertices[v][w] = 1; // @TODO: make discoveredVertices a vector?
                 }
                 printf("AFTER PUSH - e: %f\n", v, e);
@@ -208,9 +211,9 @@ void PushRelabelParallelSolver::pushRelabel(MaxFlowInstance *input, MaxFlowSolut
           }
 
           if (e == 0 || skipped) {
-            if (e == 0) { 
+            /* if (e == 0) { 
               workingSet[v] = -1; // we may be removing it in the wrong place since the update depends on things still in working set 
-            }
+            }*/ 
             break;
           }
           // std::cout << newLabel << " newLabel after for loop\n";
@@ -222,27 +225,29 @@ void PushRelabelParallelSolver::pushRelabel(MaxFlowInstance *input, MaxFlowSolut
         }
         addedPerVertex[v] = e - excessPerVertex[v]; // @TODO: oh this is the amount added to v? 
         printf("addedPerVertex[%d]: %f\n", v, addedPerVertex[v]); 
-        if (e > 0 and isDiscovered[v].test_and_set()) {
+        if (e > 0 && isDiscovered[v].test_and_set()) {
           discoveredVertices[v][v] = 1; 
         }
       }
+    }
 
-
+    for (int k = 0; k < numVertices; k++) {
+      for (int j = 0; j < numVertices; j++) { 
+        printf("discoveredVertices[%d][%d]: %d\n", k, j, discoveredVertices[k][j]);
+      } 
     }
 
     printf("updating everything\n"); 
     // the update of everything
     // #pragma omp parallel for (local copy of isDiscovered[i])
     for (int i = 0; i < numVertices; i++) { 
-      // if (workingSet[i] != -1) { 
+      if (workingSet[i] != -1) { 
         d[i] = copyOfLabels[i]; // 2 was removed from the working set too early to have its copy of labels be updated 
-        std::cout << i << ": " << d[i] << " ";
+        printf("d[%d]: %d\n", i, d[i]); 
         excessPerVertex[i] += addedPerVertex[i]; 
+        printf("addedPerVertex[%d]: %f\n", i, addedPerVertex[i]); 
         addedPerVertex[i] = 0; 
         isDiscovered[i].clear(); 
-      // }
-      for (int k = 0; k < numVertices; k++) { 
-        printf("d[%d]: %d\n", k, d[k]); 
       }
       if (workingSet[i] != -1 && d[i] < numVertices) { 
         printf("here\n"); 
@@ -254,11 +259,19 @@ void PushRelabelParallelSolver::pushRelabel(MaxFlowInstance *input, MaxFlowSolut
           }
         }
       } 
-      else { // take things out of the working set 
-        workingSet[i] = -1; //@TODO: not sure why they aren't just recalculating the workingSet by looking at the excesses (why the discovered vertices thing?)
-      }
+      if (excessPerVertex[i] == 0) { 
+        workingSet[i] = -1; 
+      } 
+      // } else { // take things out of the working set 
+      //   workingSet[i] = -1; //@TODO: not sure why they aren't just recalculating the workingSet by looking at the excesses (why the discovered vertices thing?)
+      // }
     }
-    std::cout<< "\n";
+    for (int k = 0; k < numVertices; k++) { 
+      printf("excessPerVertex[%d]: %f\n", k, excessPerVertex[k]); 
+    }
+    
+    
+    
 
 //    #pragma omp parallel for
     for (int i = 0; i < numVertices; i++) { 

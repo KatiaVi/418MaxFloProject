@@ -13,7 +13,7 @@
 #include "lib/world.h"
 //#include "lib/algorithms/sequential/genetic.h"
 #include "lib/algorithms/sequential/pushrelabel.h"
-#include "lib/algorithms/sequential/dinics.h"
+//#include "lib/algorithms/sequential/dinics.h"
 #include "lib/algorithms/parallel/pushrelabel_parallel.h"
 
 
@@ -40,10 +40,10 @@ void read_directory(const char* name, stringvec& v)
 
 
 /* TODO: Remove this deadcode (not being used anywhere) */
-void generateCapacities(int numVertices, int numEdges, float **capacities){ 
-  capacities = new float*[numVertices]; 
+void generateCapacities(int numVertices, int numEdges, int **capacities){ 
+  capacities = new int*[numVertices]; 
   for (int i = 0; i < numVertices; i++) { 
-    capacities[i] = new float[numVertices]; 
+    capacities[i] = new int[numVertices]; 
   }
   for (int i = 0; i < numVertices; i++) { 
     for (int j = 0; j < numVertices; j++) { 
@@ -67,14 +67,14 @@ int main ( int argc, char * argv[] ) {
   // Initialize Instances of Solvers
   PushRelabelSequentialSolver prSolver;
   PushRelabelParallelSolver parallelPrSolver;
-  DinicsSequentialSolver dSolver;
+  //DinicsSequentialSolver dSolver;
 
   for (std::string testFileName : testFiles) {
 
     // Initialize Structures for Test Case
     MaxFlowInstance inputInstance;
     Graph testGraph1;
-    float **capacities1;
+    int **capacities1;
     MaxFlowSolution prSolution;
     MaxFlowSolution parallelPrSolution;
     MaxFlowSolution dSolution;
@@ -103,9 +103,9 @@ int main ( int argc, char * argv[] ) {
           testGraph1.num_vertices = std::stoi(results[2]);
           testGraph1.num_edges = std::stoi(results[3]);
 
-          capacities1 = new float *[testGraph1.num_vertices];
+          capacities1 = new int *[testGraph1.num_vertices];
           for (int i = 0; i < testGraph1.num_vertices; i++) {
-            capacities1[i] = new float[testGraph1.num_vertices];
+            capacities1[i] = new int[testGraph1.num_vertices];
           }
           for (int i = 0; i < testGraph1.num_vertices; i++) {
             for (int j = 0; j < testGraph1.num_vertices; j++) {
@@ -155,11 +155,11 @@ int main ( int argc, char * argv[] ) {
     std::cout << "Results Info:\n";
     prSolver.pushRelabel(&inputInstance, &prSolution);
     parallelPrSolver.pushRelabel(&inputInstance, &parallelPrSolution);
-    dSolver.solve(&inputInstance, &dSolution);
+    //dSolver.solve(&inputInstance, &dSolution);
 
     std::cout << "push relabel maxflow: " << prSolution.maxFlow << "\n";
     std::cout << "parallel push relabel maxflow: " << parallelPrSolution.maxFlow << "\n";
-    std::cout << "dinic maxflow: " << dSolution.maxFlow << "\n";
+    //std::cout << "dinic maxflow: " << dSolution.maxFlow << "\n";
     std::cout << "\n";
 
   }

@@ -19,10 +19,10 @@ void PushRelabelSequentialSolver::initialize(MaxFlowInstance *input) {
   int numVertices = input->inputGraph.num_vertices;
   d = (int*)calloc(numVertices, sizeof(int)); 
   active = (int*)calloc(numVertices, sizeof(int)); 
-  excessPerVertex = (float*)calloc(numVertices, sizeof(float)); 
-  flows = new float*[numVertices]; 
+  excessPerVertex = (int*)calloc(numVertices, sizeof(int)); 
+  flows = new int*[numVertices]; 
   for (int i = 0; i < numVertices; i++) { 
-    flows[i] = new float[numVertices]; 
+    flows[i] = new int[numVertices]; 
   }
 }
 
@@ -39,13 +39,13 @@ void PushRelabelSequentialSolver::preflow(MaxFlowInstance *input) {
 
   d[input->source] = numVertices; 
   // find all vertices adjacent to s 
-  float **cap = input->inputGraph.capacities; 
+  int **cap = input->inputGraph.capacities; 
 
   for (int i = 0; i < numVertices; i++) { 
     if (cap[input->source][i] != 0 && (input->source != i)) { 
       // then it is an adjacent edge 
       flows[input->source][i] = cap[input->source][i]; 
-      //@TODO: make sure i have floats for the flows 
+      //@TODO: make sure i have ints for the flows 
       excessPerVertex[i] = flows[input->source][i];
       // add residual flow 
       flows[i][input->source] = -flows[input->source][i]; 
@@ -70,13 +70,13 @@ int PushRelabelSequentialSolver::existsActiveNode(MaxFlowInstance *input) {
   return -1; 
 }
 
-bool PushRelabelSequentialSolver::push(int numVertices, float **cap, int u, int sink) { 
+bool PushRelabelSequentialSolver::push(int numVertices, int **cap, int u, int sink) { 
   
   for (int v = 0; v < numVertices; v++) { 
         
     if (d[u] == d[v]+1 && (cap[u][v] - flows[u][v] > 0)) { // push if the height of the adjacent is smaller
       // push flow = min(remaining flow on edge, excess flow)
-      float flow = min(cap[u][v] - flows[u][v], excessPerVertex[u]); //@TODO: bug: adding 0 here 
+      int flow = min(cap[u][v] - flows[u][v], excessPerVertex[u]); //@TODO: bug: adding 0 here 
       // reduce excess flow for overflowing vertex 
       excessPerVertex[u] -= flow; 
 
@@ -101,7 +101,7 @@ bool PushRelabelSequentialSolver::push(int numVertices, float **cap, int u, int 
   return false; 
 }
 
-void PushRelabelSequentialSolver::relabel(int numVertices, float **cap, int u) { 
+void PushRelabelSequentialSolver::relabel(int numVertices, int **cap, int u) { 
   
   int minHeight = INT_MAX; 
   for (int v = 0; v < numVertices; v++) { 
@@ -120,7 +120,7 @@ void PushRelabelSequentialSolver::pushRelabel(MaxFlowInstance *input, MaxFlowSol
   preflow(input); 
   int numVertices = input->inputGraph.num_vertices;
 
-  float **cap = input->inputGraph.capacities; 
+  int **cap = input->inputGraph.capacities; 
   // int u = existsActiveNode(input); 
 
   while (!activeQueue.empty()) {

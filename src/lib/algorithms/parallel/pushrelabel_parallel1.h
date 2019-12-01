@@ -1,29 +1,29 @@
 #include "../../world.h"
+#include <queue> 
 #include "../../timing.h"
 #include <atomic>
 using namespace std; 
 
-class PushRelabelParallelSolver{
+class PushRelabelParallelSolver{ 
   public: 
     void pushRelabel(MaxFlowInstance *input, MaxFlowSolution *output); 
   private:
     int** flows; // x coordinate is the source, y coordinate is the sink, for edges 
-    
     int *excessPerVertex; // excess flow on each vertex also exists 
-    int *d; // the labels 
-    int *addedPerVertex; // added for prsn 
-    atomic_flag *isDiscovered; // added for prsn
-    int **discoveredVertices; 
-    int *copyOfLabels; 
-    int *copyOfExcess; 
-
+    atomic_int* excessChanges; 
+    int *d; // the labels
+    int *dCopies;  
     int *active; // replace with a queue 
+    queue<int> activeQueue; 
+    int totalFlow; 
     Timer t; 
-    int *workingSet;  
+
+    void pushOnActiveNodes(MaxFlowInstance *input); 
+    void updateLabelsAndExcess(int numVertices, int source); 
     void initialize(MaxFlowInstance *input);
     void preflow(MaxFlowInstance *input);
     bool push(int numVertices, int **cap, int u, int sink);
     void relabel(int numVertices, int **cap, int u);
-    int existsActiveNode(MaxFlowInstance *input);
+    int existsActiveNode(int numVertices, int source, int sink);
 };
 

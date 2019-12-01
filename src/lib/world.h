@@ -9,7 +9,7 @@
 struct Graph{
   int num_vertices;
   int num_edges;
-  float** capacities; // num_vertices x num_vertices array where cij = flow capacity of edge i->j
+  int** capacities; // num_vertices x num_vertices array where cij = flow capacity of edge i->j
 };
 
 class MaxFlowInstance{
@@ -21,8 +21,8 @@ class MaxFlowInstance{
 
 class MaxFlowSolution{
  public:
-  float maxFlow;
-  float** flow; // num_vertices x num_vertices array where cij = flow capacity of edge i->j
+  int maxFlow;
+  int** flow; // num_vertices x num_vertices array where cij = flow capacity of edge i->j
 };
 
 #endif //INC_418MAXFLOPROJECT_MAXFLOWINSTANCE_H
