@@ -70,7 +70,7 @@ void PushRelabelParallelSolver::preflow(MaxFlowInstance *input) {
   }
 //  #pragma omp parallel for
   for (int i = 0; i < numVertices; i++) { 
-    if (i != input->source && i != input->sink && excessPerVertex[i] > 0) { 
+    if (i != input->source && i != input->sink && excessPerVertex[i] > 0) {
       workingSet[i] = i; 
     }
   }
@@ -147,6 +147,7 @@ void PushRelabelParallelSolver::pushRelabel(MaxFlowInstance *input, MaxFlowSolut
 //    #pragma omp parallel for (local copy of isDiscovered[i])
     for (int i = 0 ; i < numVertices; i++) {
       int v = i;
+      printf("v: %d\n", v);
 
       if (workingSet[i] != -1) { // checks if the vertex is in the working set 
         printf("new v from working set: %d\n", v); 
@@ -161,7 +162,7 @@ void PushRelabelParallelSolver::pushRelabel(MaxFlowInstance *input, MaxFlowSolut
           bool skipped = false;
 
           // #pragma omp parallel for (local copy of isDiscovered[w])
-          for (int w = 0; w < numVertices; w++) { 
+          for (int w = 0; w < numVertices; w++) {
             printf("testing edge (%d, %d)\n", v, w); 
             if (cap[v][w] > 0 && cap[v][w] - flows[v][w] > 0) { // it's a residual edge 
               if (e == 0) {
@@ -223,18 +224,13 @@ void PushRelabelParallelSolver::pushRelabel(MaxFlowInstance *input, MaxFlowSolut
             break;
           }
         }
-        addedPerVertex[v] = e - excessPerVertex[v]; // @TODO: oh this is the amount added to v? 
-        printf("addedPerVertex[%d]: %f\n", v, addedPerVertex[v]); 
+        addedPerVertex[v] = e - excessPerVertex[v]; // @TODO: oh this is the amount added to v?
+        printf("addedPerVertex[%d]: %f\n", v, addedPerVertex[v]);
+        printf("excess:%f\n", e);
         if (e > 0 && isDiscovered[v].test_and_set()) {
           discoveredVertices[v][v] = 1; 
         }
       }
-    }
-
-    for (int k = 0; k < numVertices; k++) {
-      for (int j = 0; j < numVertices; j++) { 
-        printf("discoveredVertices[%d][%d]: %d\n", k, j, discoveredVertices[k][j]);
-      } 
     }
 
     printf("updating everything\n"); 
@@ -277,6 +273,7 @@ void PushRelabelParallelSolver::pushRelabel(MaxFlowInstance *input, MaxFlowSolut
     for (int i = 0; i < numVertices; i++) { 
       if (workingSet[i] != -1) { 
         excessPerVertex[i] += addedPerVertex[i];
+        printf("excess: %f\n", excessPerVertex[i]);
         addedPerVertex[i] = 0; 
         isDiscovered[i].clear(); 
       }
