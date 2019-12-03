@@ -1,7 +1,8 @@
 #include "../../world.h"
 #include "../../timing.h"
 #include <atomic>
-using namespace std; 
+
+using namespace std;
 
 class PushRelabelParallelSolver{
   public: 
