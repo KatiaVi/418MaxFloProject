@@ -304,14 +304,14 @@ void PushRelabelParallelSolver::pushRelabel(MaxFlowInstance *input, MaxFlowSolut
     // create new working set 
     set<int> workingSetNew; 
     for (int i : workingSet) {
-      if (d[i] < numVertices) { 
+      //if (d[i] < numVertices) {
         for (int j = 0; j < numVertices; j++) { 
           printf("%d has these discoveredVertices[%d][%d]: %d\n", i, i, j, discoveredVertices[i][j]); 
-          if (discoveredVertices[i][j] != -1) { // && excessPerVertex[j] > 0
+          if (discoveredVertices[i][j] != -1 and d[j] < numVertices) { // && excessPerVertex[j] > 0
             workingSetNew.insert(j); 
           }
         }
-      }
+      //}
     }
     workingSet.swap(workingSetNew);
 
