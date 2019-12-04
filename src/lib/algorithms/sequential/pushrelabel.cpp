@@ -71,7 +71,6 @@ int PushRelabelSequentialSolver::existsActiveNode(MaxFlowInstance *input) {
 }
 
 bool PushRelabelSequentialSolver::push(int numVertices, int **cap, int u, int sink) { 
-  
   for (int v = 0; v < numVertices; v++) { 
         
     if (d[u] == d[v]+1 && (cap[u][v] - flows[u][v] > 0)) { // push if the height of the adjacent is smaller
@@ -95,6 +94,7 @@ bool PushRelabelSequentialSolver::push(int numVertices, int **cap, int u, int si
       // add residual flow 
       flows[u][v] += flow; 
       flows[v][u] -= flow; 
+      printf("successfully pushed %d flow from %d to %d\n", flow, u, v); 
       return true; 
     }
   }
@@ -102,14 +102,16 @@ bool PushRelabelSequentialSolver::push(int numVertices, int **cap, int u, int si
 }
 
 void PushRelabelSequentialSolver::relabel(int numVertices, int **cap, int u) { 
-  
+  printf("relabeling u: %d\n", u); 
   int minHeight = INT_MAX; 
   for (int v = 0; v < numVertices; v++) { 
     if ((cap[u][v] - flows[u][v]) > 0) { 
+      printf("d[%d]: %d\n", v, d[v]);
       minHeight = min(minHeight, d[v]); 
     } 
   }
   d[u] = minHeight + 1;
+  printf("setting d[%d] = %d\n", u, d[u]);
   activeQueue.push(u); 
 }
 
@@ -117,7 +119,7 @@ void PushRelabelSequentialSolver::relabel(int numVertices, int **cap, int u) {
 
 void PushRelabelSequentialSolver::pushRelabel(MaxFlowInstance *input, MaxFlowSolution *output) { 
   t.reset();
-  preflow(input); 
+  preflow(input);  
   int numVertices = input->inputGraph.num_vertices;
 
   int **cap = input->inputGraph.capacities; 

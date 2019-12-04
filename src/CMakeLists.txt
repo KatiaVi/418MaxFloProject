@@ -14,12 +14,13 @@ include_directories(${CMAKE_CURRENT_SOURCE_DIR})
 
 add_executable(maxflow main.cpp
 lib/algorithms/sequential/pushrelabel.cpp lib/algorithms/sequential/pushrelabel.h
-lib/algorithms/parallel/pushrelabel_parallel1.cpp lib/algorithms/parallel/pushrelabel_parallel1.h
-lib/algorithms/sequential/dinics.cpp lib/algorithms/sequential/dinics.h
-lib/algorithms/parallel/dinics_parallel.cpp lib/algorithms/parallel/dinics_parallel.h)
+lib/algorithms/parallel/pushrelabel_parallel.cpp lib/algorithms/parallel/pushrelabel_parallel.h
+
+)
 # Problem here may not be able to compile the other parallel algo because reach limit on the number
 # of executables attached to the maxflow command?
-
+# lib/algorithms/sequential/dinics.cpp lib/algorithms/sequential/dinics.h
+# lib/algorithms/parallel/dinics_parallel.cpp lib/algorithms/parallel/dinics_parallel.h
 
 
 target_include_directories(maxflow PRIVATE lib)

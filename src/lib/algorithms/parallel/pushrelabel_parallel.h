@@ -1,6 +1,8 @@
 #include "../../world.h"
 #include "../../timing.h"
 #include <atomic>
+#include <set> 
+
 using namespace std; 
 
 class PushRelabelParallelSolver{
@@ -12,14 +14,16 @@ class PushRelabelParallelSolver{
     int *excessPerVertex; // excess flow on each vertex also exists 
     int *d; // the labels 
     int *addedPerVertex; // added for prsn 
-    atomic_flag *isDiscovered; // added for prsn
+    atomic_bool *isDiscovered; // added for prsn
     int **discoveredVertices; 
     int *copyOfLabels; 
     int *copyOfExcess; 
+    int **residual; 
 
     int *active; // replace with a queue 
     Timer t; 
-    int *workingSet;  
+    set<int> workingSet; 
+    // int *workingSet; 
     void initialize(MaxFlowInstance *input);
     void preflow(MaxFlowInstance *input);
     bool push(int numVertices, int **cap, int u, int sink);
