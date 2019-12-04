@@ -44,7 +44,7 @@ int DinicsSequentialSolver::sendFlow(int current, int flow, int sink, int start[
     if (levels[child] == levels[current]+1 && flows[current][child] < capacities[current][child])
     {
       // find minimum flow from current to sink
-      int curr_flow = fmin(flow, capacities[current][child] - flows[current][child]);
+      int curr_flow = std::min(flow, capacities[current][child] - flows[current][child]);
       int temp_flow = sendFlow(child, curr_flow, sink, start);
 
       // flow is greater than zero

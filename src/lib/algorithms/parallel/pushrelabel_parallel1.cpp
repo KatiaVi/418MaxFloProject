@@ -23,14 +23,9 @@ void PushRelabelParallelSolver::initialize(MaxFlowInstance *input) {
   active = (int*)calloc(numVertices, sizeof(int)); 
   excessPerVertex = (int*)calloc(numVertices, sizeof(int)); 
   excessChanges = (atomic_int*)malloc(numVertices*sizeof(atomic_int)); 
-  // needsRelabeling = (bool*)calloc(numVertices, sizeof(bool)); 
   flows = new int*[numVertices]; 
   // #pragma omp parallel for
   for (int i = 0; i < numVertices; i++) { 
-    flows[i] = new int[numVertices]; 
-    excessChanges[i] = ATOMIC_VAR_INIT(0); 
-  }
-}
 
 void PushRelabelParallelSolver::preflow(MaxFlowInstance *input) { 
   initialize(input); 

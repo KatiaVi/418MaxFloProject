@@ -6,9 +6,6 @@
 #include "../../timing.h" 
 #include <vector>
 
-#ifndef INC_418MAXFLOPROJECT_DINICS_H
-#define INC_418MAXFLOPROJECT_DINICS_H
-
 
 class DinicsSequentialSolver{
  public:
@@ -28,8 +25,4 @@ class DinicsSequentialSolver{
   int sendFlow(int currentVertex, int flow, int sink, int *start);
 
 };
-
-
-#endif //INC_418MAXFLOPROJECT_DINICS_H
-
 
