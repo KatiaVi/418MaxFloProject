@@ -142,7 +142,7 @@ void PushRelabelParallelSolver::globalRelabel(int numVertices, int source, int s
         discoveredVertices[v][j] = -1; 
       }
       for (int w = 0; w < numVertices; w++) { 
-        if (w != source && residual[v][w] > 0) { 
+        if (w != source && residual[w][v] > 0) { 
           //@TODO: make this atomic compare and swap 
           if (w != sink && d[w] == numVertices) { 
             d[w] = d[v]+1;
@@ -152,13 +152,15 @@ void PushRelabelParallelSolver::globalRelabel(int numVertices, int source, int s
       }
     }
     // done with parallel prefix sum 
+    vector<int> newq; 
     for (int v : q) { 
       for (int j = 0; j < numVertices; j++) { 
         if (discoveredVertices[v][j] != -1) { 
-          q.push_back(j); 
+          newq.push_back(j); 
         }
       }
     }
+    q.swap(newq); 
   }
 }
 
@@ -208,11 +210,16 @@ void PushRelabelParallelSolver::pushRelabel(MaxFlowInstance *input, MaxFlowSolut
     // std::cout << "\n";
 
     if (freq * workSinceLastGR > a * numVertices + numEdges) { 
+      printf("does a global relabel\n"); 
       workSinceLastGR = 0; 
       globalRelabel(numVertices, input->source, input->sink); 
+      for (int i = 0; i < numVertices; i++) { 
+        copyOfLabels[i] = d[i];
+      }
+      
       // @TODO: parallel array comprehension using map/filter 
       set<int> newWorkingSet; 
-      for (int v : workingSet)  { 
+      for (int v : workingSet) { 
         if (d[v] < numVertices) { 
           newWorkingSet.insert(v); 
         }
@@ -292,9 +299,10 @@ void PushRelabelParallelSolver::pushRelabel(MaxFlowInstance *input, MaxFlowSolut
                 //printf("AFTER PUSH - (cap[%d][%d]-flows[%d][%d]): %d\n", v, w, v, w, (cap[v][w] - flows[v][w]));
               }
               printf("d[%d] = %d \n", w, d[w]);
+
               if (residual[v][w] /* cap[v][w]- flows[v][w]*/ > 0 && d[w] >= copyOfLabels[v]) {
                 newLabel = min(newLabel, d[w]+1);
-                printf("new label for %d is: %d\n", v, newLabel);
+                // printf("new label for %d is: %d\n", v, newLabel);
               }
             }
           }
