@@ -56,7 +56,7 @@ int main ( int argc, char * argv[] ) {
   stringvec testFiles;
   read_directory("tests", allFiles);
   for (int i = 0; i < allFiles.size(); i++){
-    if (allFiles[i].find("small2.txt") != string::npos){ //@TODO: change this to run specific test cases
+    if (allFiles[i].find("small3.txt") != string::npos){ //@TODO: change this to run specific test cases
       testFiles.push_back(allFiles[i]);
     }
   }

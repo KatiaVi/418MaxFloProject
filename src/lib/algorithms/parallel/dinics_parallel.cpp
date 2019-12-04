@@ -210,10 +210,7 @@ void DinicsParallelSolver::solve(MaxFlowInstance *input, MaxFlowSolution *output
   {
     // store how many edges are visited
     // from V { 0 to V }
-    int *start = new int[input->inputGraph.num_vertices + 1];
-    for (int i = 0; i < input->inputGraph.num_vertices + 1; i++) { 
-      start[i] = 0; 
-    }
+    int *start = (int*)calloc(input->inputGraph.num_vertices + 1, sizeof(int));
 
     sendFlowTimer.reset();
     int flow = sendFlow(input->source, INT_MAX, input->sink, start);

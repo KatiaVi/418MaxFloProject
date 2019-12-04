@@ -1,14 +1,9 @@
 #include "../../world.h"
 #include "../../timing.h"
 #include <atomic>
-<<<<<<< HEAD
 #include <set> 
 
-using namespace std; 
-=======
-
 using namespace std;
->>>>>>> 58430322a625d43f1f2426ce41dc7f1cd5ee3a26
 
 class PushRelabelParallelSolver{
   public: 

@@ -136,6 +136,7 @@ void PushRelabelParallelSolver::pushRelabel(MaxFlowInstance *input, MaxFlowSolut
   int **cap = input->inputGraph.capacities; 
   // int u = existsActiveNode(input);
   while (true) {
+
     //@TODO: make working set a vector to check if empty 
     // bool isEmpty = true; 
     // for (int i = 0; i < numVertices; i++) { 
@@ -152,9 +153,34 @@ void PushRelabelParallelSolver::pushRelabel(MaxFlowInstance *input, MaxFlowSolut
       break; 
     }
 
+    // update redisual capacities
+    std::cout << "Residuals:\n";
+    for (int i=0; i < numVertices; i++){
+      for (int j=0; j < numVertices; j++){
+        residual[i][j] = cap[i][j] - flows[i][j];
+        if (residual[i][j] > 0) {
+          printf("(%d,%d): %d\n", i, j, residual[i][j]);
+        }
+      }
+      std::cout << "\n";
+    }
+    std::cout << "\n";
+    std::cout << "Excess:\n";
+    for (int j=0; j < numVertices; j++){
+      std::cout << excessPerVertex[j] << " ";
+    }
+    std::cout << "\n";
+
+
+    std::cout << "Working set:\n";
+    for (int v: workingSet){
+      std::cout << v << " ";
+    }
+    std::cout << "\n";
 //    #pragma omp parallel for (local copy of isDiscovered[i])
     for (int v : workingSet) { 
-      printf("new v from working set: %d\n", v); 
+      printf("new v from working set: %d\n", v);
+
         for (int j = 0 ; j < numVertices; j++) { 
           discoveredVertices[v][j] = -1; // reinitialize @TODO: 
           // @TODO: make discoveredVertices into an array of sets otherwise will have way too big of a matrix for larger test cases, also then fill in with not just 1 but the actual vertex index   
@@ -171,7 +197,7 @@ void PushRelabelParallelSolver::pushRelabel(MaxFlowInstance *input, MaxFlowSolut
           for (int w = 0; w < numVertices; w++) {
             printf("testing edge (%d, %d)\n", v, w); 
             // printf("cap[%d][%d]: %d\n", v, w, cap[v][w]); 
-            if (cap[v][w] - flows[v][w] > 0) { // it's a residual edge // cap[v][w] > 0 && - maybe is trying to push back onto start? 
+            if (residual[v][w] /*cap[v][w]- flows[v][w]*/ > 0) { // it's a residual edge // cap[v][w] > 0 && - maybe is trying to push back onto start?
               if (e == 0) {
                 printf("excess[%d] is 0\n", v); 
                 //workingSet[v] = -1;
@@ -187,9 +213,9 @@ void PushRelabelParallelSolver::pushRelabel(MaxFlowInstance *input, MaxFlowSolut
               //   }  
               // }
 
-              if (admissible && (cap[v][w] - flows[v][w] > 0)) {
+              if (admissible && (residual[v][w] /* cap[v][w]- flows[v][w]*/ > 0)) {
                 
-                int delta = min(cap[v][w] - flows[v][w], excessPerVertex[v]); 
+                int delta = min(residual[v][w] /* cap[v][w] - flows[v][w]*/, e);
                 printf("pushing %d flow from %d to %d\n", delta, v, w); 
                 // add residual flow 
                 flows[v][w] += delta; 
@@ -203,14 +229,14 @@ void PushRelabelParallelSolver::pushRelabel(MaxFlowInstance *input, MaxFlowSolut
                   // printf("discovers %d\n", w); 
                   discoveredVertices[v][w] = 1; // @TODO: make discoveredVertices a vector?
                 }
-                printf("AFTER PUSH - e: %d\n", v, e);
+                printf("AFTER PUSH - e: %d\n", e);
                 printf("AFTER PUSH - addedPerVertex[%d]: %d\n", w, addedPerVertex[w]);
-                printf("AFTER PUSH - (cap[%d][%d]-flows[%d][%d]): %d\n", v, w, v, w, (cap[v][w] - flows[v][w]));
+                //printf("AFTER PUSH - (cap[%d][%d]-flows[%d][%d]): %d\n", v, w, v, w, (cap[v][w] - flows[v][w]));
               }
-              // std::cout << d[w] << "<- d[w]\n";
-              if (cap[v][w] - flows[v][w] > 0 && d[w] >= copyOfLabels[v]) {
+              printf("d[%d] = %d \n", w, d[w]);
+              if (residual[v][w] /* cap[v][w]- flows[v][w]*/ > 0 && d[w] >= copyOfLabels[v]) {
                 newLabel = min(newLabel, d[w]+1);
-                // printf("new label for %d is: %d\n", v, newLabel); 
+                printf("new label for %d is: %d\n", v, newLabel);
               }
             }
           }
@@ -224,13 +250,22 @@ void PushRelabelParallelSolver::pushRelabel(MaxFlowInstance *input, MaxFlowSolut
             break;
           }
         }
-        addedPerVertex[v] += e - excessPerVertex[v]; //@TODO: problematic line - because doesn't take into account the changes that have already been made to the excess - overwrites addedPerVertex if it was discovered by another thing in the workingSet 
-        printf("addedPerVertex[%d]: %f\n", v, addedPerVertex[v]);
+        printf("addedPerVertex[%d]: %d\n", v, addedPerVertex[v]);
+        printf("e=%d and excessPerVertex[%d]: %d\n", e, v, excessPerVertex[v]);
+
+        addedPerVertex[v] += (e - excessPerVertex[v]); //@TODO: problematic line - because doesn't take into account the changes that have already been made to the excess - overwrites addedPerVertex if it was discovered by another thing in the workingSet
+        printf("addedPerVertex[%d]: %d\n", v, addedPerVertex[v]);
+        std::cout << "AddedExcess:\n";
+        for (int j=0; j < numVertices; j++){
+          std::cout << addedPerVertex[j] << " ";
+        }
+        std::cout << "\n";
 
         // the line below doesnt really make sense - oh would make sense if it was skipped - @TODO: add back later 
-        // if (e > 0 && isDiscovered[v].test_and_set()) { // this line is wrong because e will always be = 0 after the while loop 
-        //   discoveredVertices[v][v] = 1; 
-        // }
+        // could be if broke out at this line: if (copyOfLabels[v] == numVertices)
+        if (e > 0) { // this line is wrong because e will always be = 0 after the while loop
+           discoveredVertices[v][v] = 1;
+        }
     }
 
     // for (int i = 0 ; i < numVertices; i++) {
@@ -258,6 +293,12 @@ void PushRelabelParallelSolver::pushRelabel(MaxFlowInstance *input, MaxFlowSolut
       // }
     }
 
+    std::cout << "New D:\n";
+    for (int j=0; j < numVertices; j++){
+      std::cout << d[j] << " ";
+    }
+    std::cout << "\n";
+
     // could create a copy of the working set and work off of that 
     // make working set an actual set in c++ 
     // create new working set 
@@ -272,7 +313,8 @@ void PushRelabelParallelSolver::pushRelabel(MaxFlowInstance *input, MaxFlowSolut
         }
       }
     }
-    workingSet.swap(workingSetNew); 
+    workingSet.swap(workingSetNew);
+
     //@TODO: to debug: print out the things in workingSetNew 
     // for (int i = 0; i < numVertices; i++) { 
     //   if (workingSet[i] != -1 && d[i] < numVertices) { //&& excessPerVertex[i] > 0 makes it stop running forever 
