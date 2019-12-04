@@ -2,8 +2,9 @@
 #include "../../timing.h"
 #include <atomic>
 #include <set> 
+#include <queue> 
 
-using namespace std;
+using namespace std; 
 
 class PushRelabelParallelSolver{
   public: 
@@ -19,6 +20,7 @@ class PushRelabelParallelSolver{
     int *copyOfLabels; 
     int *copyOfExcess; 
     int **residual; 
+    int *work; 
 
     int *active; // replace with a queue 
     Timer t; 
@@ -29,5 +31,6 @@ class PushRelabelParallelSolver{
     bool push(int numVertices, int **cap, int u, int sink);
     void relabel(int numVertices, int **cap, int u);
     int existsActiveNode(MaxFlowInstance *input);
+    void globalRelabel(int numVertices, int source, int sink); 
 };
 
