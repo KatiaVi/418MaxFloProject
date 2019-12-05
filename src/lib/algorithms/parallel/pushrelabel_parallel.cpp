@@ -93,6 +93,7 @@ void PushRelabelParallelSolver::globalRelabel(int numVertices, int source, int s
       for (int w = 0; w < numVertices; w++) { 
         if (w != source && residual[w][v] > 0) { 
           //@TODO!: make this atomic compare and swap 
+          // compare_exchange_strong()
           if (w != sink && d[w] == numVertices) { 
             d[w] = d[v]+1;
             discoveredVertices[v][w] = 1; 
