@@ -13,9 +13,9 @@ class PushRelabelParallelSolver{
     int** flows; // x coordinate is the source, y coordinate is the sink, for edges 
     
     int *excessPerVertex; // excess flow on each vertex also exists 
-    int *d; // the labels 
-    int *addedPerVertex; // added for prsn 
-    atomic_bool *isDiscovered; // added for prsn
+    atomic_int *d; // the labels 
+    int *addedExcess;  
+    atomic_bool *isDiscovered; 
     int **discoveredVertices; 
     int *copyOfLabels; 
     int *copyOfExcess; 
