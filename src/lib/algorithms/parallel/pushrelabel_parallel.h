@@ -24,7 +24,7 @@ class PushRelabelParallelSolver{
 
     int *active; // replace with a queue 
     Timer t; 
-    vector<int> workingSet; 
+    set<int> workingSet; 
     // int *workingSet; 
     void initialize(MaxFlowInstance *input);
     void preflow(MaxFlowInstance *input);
