@@ -28,8 +28,6 @@ class PushRelabelParallelSolver{
     // int *workingSet; 
     void initialize(MaxFlowInstance *input);
     void preflow(MaxFlowInstance *input);
-    bool push(int numVertices, int **cap, int u, int sink);
-    void relabel(int numVertices, int **cap, int u);
     int existsActiveNode(MaxFlowInstance *input);
     void globalRelabel(int numVertices, int source, int sink); 
 };
