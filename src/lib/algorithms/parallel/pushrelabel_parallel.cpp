@@ -129,6 +129,11 @@ void PushRelabelParallelSolver::pushRelabel(MaxFlowInstance *input, MaxFlowSolut
   int numEdges = input->inputGraph.num_edges;
   
   int **cap = input->inputGraph.capacities; 
+  for (int i = 0; i < numVertices; i++) { 
+    for (int j = 0; j < numVertices; j++) { 
+      printf("cap[%d][%d]: %d\n", i, j, cap[i][j]); 
+    }
+  }
   int workSinceLastGR = INT_MAX; 
   float freq = 0.5; 
   int a = 6; 

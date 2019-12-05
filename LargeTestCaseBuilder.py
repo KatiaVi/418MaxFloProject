@@ -1,5 +1,4 @@
-import glob, os
-
+import glob, os, random 
 # When ran this file converts *.graph files downloaded from https://www.cc.gatech.edu/dimacs10/archive/delaunay.shtml
 # to *.txt files with DIMACS format
 # the output *.txt files are stored in the tests/ folder
@@ -10,6 +9,7 @@ def convertGraphToMaxflowFormat(fileName):
     filepath = fileName.split('/')
     graphName = filepath[1][:-6]
     maxFlowGraphFile = open(os.path.join(dir_path, graphName + ".txt"), "w")
+    rand = random.seed()
 
     with open(fileName) as fp:
         line = fp.readline()
@@ -23,7 +23,7 @@ def convertGraphToMaxflowFormat(fileName):
         while line:
             neighbors = line.split()
             for neighbor in neighbors:
-                maxFlowGraphFile.write("a " + str(currVertex) + " " + neighbor+" 1\n")
+                maxFlowGraphFile.write("a " + str(currVertex) + " " + neighbor+" " + str(random.randint(1, 20)) + "\n")
             currVertex += 1
             line = fp.readline()
 
