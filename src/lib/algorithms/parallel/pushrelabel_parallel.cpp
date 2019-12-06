@@ -326,17 +326,18 @@ void PushRelabelParallelSolver::pushRelabel(MaxFlowInstance *input, MaxFlowSolut
     set<int> workingSetNew; 
     // this loop was slowwww 
     for (int i : workingSet) {
-      //if (d[i] < numVertices) {
-        workSinceLastGR += work[i]; // combined in here 
-        for (int j = 0; j < numVertices; j++) { 
+      workSinceLastGR += work[i]; // combined in here 
+      for (int j = 0; j < numVertices; j++) { 
+        
+        // printf("%d has these discoveredVertices[%d][%d]: %d\n", i, i, j, discoveredVertices[i][j]); 
+        if (discoveredVertices[i][j] and d[j] < numVertices) { 
           residual[i][j] = cap[i][j] - flows[i][j]; 
-          residual[j][i] = cap[j][i] - flows[j][i]; // do this in the initializer 
-          // printf("%d has these discoveredVertices[%d][%d]: %d\n", i, i, j, discoveredVertices[i][j]); 
-          if (discoveredVertices[i][j] and d[j] < numVertices) { // && excessPerVertex[j] > 0
-            workingSetNew.insert(j); 
-          }
+          residual[j][i] = cap[j][i] - flows[j][i]; 
+          workingSetNew.insert(j); 
         }
-      //}
+      }
+      residual[i][input->sink] = cap[i][input->sink] - flows[i][input->sink]; //@TODO: maybe can do this access in a more cache friendly way 
+      residual[input->sink][i] = cap[input->sink][i] - flows[input->sink][i]; 
     }
     workingSet.swap(workingSetNew);
 
