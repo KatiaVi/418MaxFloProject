@@ -59,7 +59,6 @@ void PushRelabelParallelSolver::preflow(MaxFlowInstance *input) {
       // then it is an adjacent edge
       flows[input->source][i] = cap[input->source][i];
       residual[input->source][i] = cap[input->source][i] - flows[input->source][i]; //@START
-      //@TODO: make sure i have ints for the flows
       excessPerVertex[i] = flows[input->source][i];
       // add residual flow
       flows[i][input->source] = -flows[input->source][i];
@@ -179,6 +178,7 @@ void PushRelabelParallelSolver::pushRelabel(MaxFlowInstance *input, MaxFlowSolut
     // for (int v: workingSet){
     //   std::cout << v << " ";
     // }
+<<<<<<< HEAD
     // std::cout << "\n";
 #pragma omp parallel
     {
@@ -235,8 +235,9 @@ void PushRelabelParallelSolver::pushRelabel(MaxFlowInstance *input, MaxFlowSolut
                     e -= delta;
                     // printf("new excess flow for %d: %d\n", v, e);
                     //@TODO: atomic fetch-and-add
-                    addedExcess[w] += delta;  // MAKE ATOMIC
-                    if (w != input->sink) { // && (isDiscovered[w]).exchange(true)) { //@TODO ??? why dont u just add it to the set
+                    atomic_fetch_add(&addedExcess[w], delta); 
+                    // addedExcess[w] += delta;  // MAKE ATOMIC
+                    if (w != input->sink) { // && (isDiscovered[w]).exchange(true)) { //@TODO ??? why dont u just add it to the set 
                       // printf("discovers %d\n", w);
                       discoveredVertices[v][w] = 1; // @TODO: make discoveredVertices a vector?
                     }
@@ -282,6 +283,7 @@ void PushRelabelParallelSolver::pushRelabel(MaxFlowInstance *input, MaxFlowSolut
           }
         }
       }
+      #pragma omp taskwait 
     }
 
 
@@ -327,14 +329,15 @@ void PushRelabelParallelSolver::pushRelabel(MaxFlowInstance *input, MaxFlowSolut
     // this loop was slowwww
     for (int i : workingSet) {
       //if (d[i] < numVertices) {
-      workSinceLastGR += work[i]; // combined in here
-      for (int j = 0; j < numVertices; j++) {
-        //@TODO: put the update to residual capacities here? - 2nd line is needed
-        residual[i][j] = cap[i][j] - flows[i][j];
-        residual[j][i] = cap[j][i] - flows[j][i]; // do this in the initializer
-        // printf("%d has these discoveredVertices[%d][%d]: %d\n", i, i, j, discoveredVertices[i][j]);
-        if (discoveredVertices[i][j] and d[j] < numVertices) { // && excessPerVertex[j] > 0
-          workingSetNew.insert(j);
+        workSinceLastGR += work[i]; // combined in here 
+        for (int j = 0; j < numVertices; j++) { 
+          residual[i][j] = cap[i][j] - flows[i][j]; 
+          residual[j][i] = cap[j][i] - flows[j][i]; // do this in the initializer 
+          // printf("%d has these discoveredVertices[%d][%d]: %d\n", i, i, j, discoveredVertices[i][j]); 
+          if (discoveredVertices[i][j] and d[j] < numVertices) { // && excessPerVertex[j] > 0
+            workingSetNew.insert(j); 
+          }
+
         }
       }
       //}
