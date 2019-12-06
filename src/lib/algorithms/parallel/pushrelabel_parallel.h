@@ -14,7 +14,7 @@ class PushRelabelParallelSolver{
     
     int *excessPerVertex; // excess flow on each vertex also exists 
     atomic_int *d; // the labels 
-    int *addedExcess;  
+    atomic_int *addedExcess;  
     atomic_bool *isDiscovered; 
     int **discoveredVertices; 
     int *copyOfLabels; 

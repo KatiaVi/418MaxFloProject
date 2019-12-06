@@ -24,7 +24,7 @@ void PushRelabelParallelSolver::initialize(MaxFlowInstance *input) {
   active = (int*)calloc(numVertices, sizeof(int)); 
   excessPerVertex = (int*)calloc(numVertices, sizeof(int)); 
   copyOfExcess = (int*)calloc(numVertices, sizeof(int)); 
-  addedExcess = (int*)calloc(numVertices, sizeof(int));
+  addedExcess = (atomic_int*)calloc(numVertices, sizeof(atomic_int));
   isDiscovered = (atomic_bool*)malloc(numVertices*sizeof(atomic_bool));
   workingSet.clear(); 
   
@@ -59,7 +59,6 @@ void PushRelabelParallelSolver::preflow(MaxFlowInstance *input) {
       // then it is an adjacent edge 
       flows[input->source][i] = cap[input->source][i]; 
       residual[input->source][i] = cap[input->source][i] - flows[input->source][i]; //@START
-      //@TODO: make sure i have ints for the flows 
       excessPerVertex[i] = flows[input->source][i];
       // add residual flow 
       flows[i][input->source] = -flows[input->source][i]; 
@@ -96,7 +95,6 @@ void PushRelabelParallelSolver::globalRelabel(int numVertices, int source, int s
       }
       for (int w = 0; w < numVertices; w++) { 
         if (w != source && residual[w][v] > 0) { //@TODO: spends a lot of time checking this line in global relabel for all the vertices 
-          //@TODO!: make this atomic compare and swap 
           int tmp = numVertices; 
           if (w != sink && d[w].compare_exchange_strong(tmp, d[v]+1)) { 
             discoveredVertices[v][w] = 1; 
@@ -182,11 +180,11 @@ void PushRelabelParallelSolver::pushRelabel(MaxFlowInstance *input, MaxFlowSolut
     // std::cout << "\n"; 
     #pragma omp parallel 
     { 
-      #pragma omp single 
+      #pragma omp single
       { 
         for (auto iter = workingSet.begin(); iter != workingSet.end(); iter++) { 
-      // printf("new v from working set: %d\n", v);
-          #pragma omp task 
+         // printf("new v from working set: %d\n", v);
+          #pragma omp task untied 
           { 
             int v = *iter; 
             for (int j = 0 ; j < numVertices; j++) { 
@@ -235,7 +233,8 @@ void PushRelabelParallelSolver::pushRelabel(MaxFlowInstance *input, MaxFlowSolut
                     e -= delta; 
                     // printf("new excess flow for %d: %d\n", v, e); 
                     //@TODO: atomic fetch-and-add
-                    addedExcess[w] += delta;  // MAKE ATOMIC
+                    atomic_fetch_add(&addedExcess[w], delta); 
+                    // addedExcess[w] += delta;  // MAKE ATOMIC
                     if (w != input->sink) { // && (isDiscovered[w]).exchange(true)) { //@TODO ??? why dont u just add it to the set 
                       // printf("discovers %d\n", w); 
                       discoveredVertices[v][w] = 1; // @TODO: make discoveredVertices a vector?
@@ -282,6 +281,7 @@ void PushRelabelParallelSolver::pushRelabel(MaxFlowInstance *input, MaxFlowSolut
           }
         }
       }
+      #pragma omp taskwait 
     }
     
 
@@ -329,7 +329,6 @@ void PushRelabelParallelSolver::pushRelabel(MaxFlowInstance *input, MaxFlowSolut
       //if (d[i] < numVertices) {
         workSinceLastGR += work[i]; // combined in here 
         for (int j = 0; j < numVertices; j++) { 
-          //@TODO: put the update to residual capacities here? - 2nd line is needed
           residual[i][j] = cap[i][j] - flows[i][j]; 
           residual[j][i] = cap[j][i] - flows[j][i]; // do this in the initializer 
           // printf("%d has these discoveredVertices[%d][%d]: %d\n", i, i, j, discoveredVertices[i][j]); 
