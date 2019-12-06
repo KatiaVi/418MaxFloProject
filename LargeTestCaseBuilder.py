@@ -23,7 +23,7 @@ def convertGraphToMaxflowFormat(fileName):
         while line:
             neighbors = line.split()
             for neighbor in neighbors:
-                maxFlowGraphFile.write("a " + str(currVertex) + " " + neighbor+" " + str(random.randint(1, 20)) + "\n")
+                maxFlowGraphFile.write("a " + str(currVertex) + " " + neighbor+" " + str(random.randint(1, 1000)) + "\n")
             currVertex += 1
             line = fp.readline()
 
