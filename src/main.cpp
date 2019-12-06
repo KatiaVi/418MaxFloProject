@@ -209,7 +209,7 @@ int main ( int argc, char * argv[] ) {
       if (strcmp(argv[2], "dinics") == 0){
         //parallelDSolver.solve(&inputInstance, &parallelDSolution);
         parallelDSolver.smallSolve(&inputInstanceSmall, &parallelDSolutionSmall);
-        std::cout << "parallel dinic maxflow: " << parallelDSolution.maxFlow << "\n";
+        std::cout << "parallel dinic maxflow: " << parallelDSolutionSmall.maxFlow << "\n";
       }
       if (strcmp(argv[2], "pushrelabel") == 0){
         parallelPrSolver.pushRelabel(&inputInstance, &parallelPrSolution);
