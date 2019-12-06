@@ -129,11 +129,6 @@ void PushRelabelParallelSolver::pushRelabel(MaxFlowInstance *input, MaxFlowSolut
   int numEdges = input->inputGraph.num_edges;
   
   int **cap = input->inputGraph.capacities; 
-  for (int i = 0; i < numVertices; i++) { 
-    for (int j = 0; j < numVertices; j++) { 
-      printf("cap[%d][%d]: %d\n", i, j, cap[i][j]); 
-    }
-  }
   int workSinceLastGR = INT_MAX; 
   float freq = 0.5; 
   int a = 6; 
@@ -334,7 +329,7 @@ void PushRelabelParallelSolver::pushRelabel(MaxFlowInstance *input, MaxFlowSolut
       //if (d[i] < numVertices) {
         workSinceLastGR += work[i]; // combined in here 
         for (int j = 0; j < numVertices; j++) { 
-          //@TODO: put the update to residual capacities here? - not sure if the second line is needed 
+          //@TODO: put the update to residual capacities here? - 2nd line is needed
           residual[i][j] = cap[i][j] - flows[i][j]; 
           residual[j][i] = cap[j][i] - flows[j][i]; // do this in the initializer 
           // printf("%d has these discoveredVertices[%d][%d]: %d\n", i, i, j, discoveredVertices[i][j]); 
