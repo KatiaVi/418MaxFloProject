@@ -13,6 +13,7 @@
 #include <atomic> 
 #include <set> 
 #include <queue> 
+#include <unordered_set> 
 
 #include "pushrelabel_parallel.h"
 
@@ -33,13 +34,15 @@ void PushRelabelParallelSolver::initialize(MaxFlowInstance *input) {
   
   flows = (int**)calloc(numVertices, sizeof(int*));
   discoveredVertices = (int**)calloc(numVertices, sizeof(int*));
-  residual = (int**)calloc(numVertices, sizeof(int*));
+  residual = (vector<int> *)calloc(numVertices, vector<int>); 
+  reverseResidual = (vector<int> *)calloc(numVertices, vector<int>); 
+  // residual = (int**)calloc(numVertices, sizeof(int*));
 
   #pragma omp parallel for
   for (int i = 0; i < numVertices; i++) { 
     flows[i] = (int*)calloc(numVertices, sizeof(int));
     discoveredVertices[i] = (int*)calloc(numVertices, sizeof(int));
-    residual[i] = (int*)calloc(numVertices, sizeof(int));
+    // residual[i] = (int*)calloc(numVertices, sizeof(int));
     isDiscovered[i] = ATOMIC_FLAG_INIT;
   }
 }
@@ -58,15 +61,21 @@ void PushRelabelParallelSolver::preflow(MaxFlowInstance *input) {
     if (cap[input->source][i] != 0 && (input->source != i)) { 
       // then it is an adjacent edge 
       flows[input->source][i] = cap[input->source][i]; 
-      residual[input->source][i] = cap[input->source][i] - flows[input->source][i]; //@START
+      // residual[input->source][i] = cap[input->source][i] - flows[input->source][i]; -> moved this to another for loop so that this one could be parallelized 
       excessPerVertex[i] = flows[input->source][i];
       // add residual flow 
       flows[i][input->source] = -flows[input->source][i]; 
-      residual[i][input->source] = cap[i][input->source] - flows[i][input->source]; 
+      residual[i].push_back(make_pair(input->source, cap[i][input->source] - flows[i][input->source]));
+      // residual[i][input->source] = cap[i][input->source] - flows[i][input->source]; 
     }
     for (int j = 0; j < numVertices; j++) { 
-      residual[i][j] = cap[i][j] - flows[i][j]; 
+      residual[i].push_back(make_pair(j, cap[i][j] - flows[i][j])); 
+      // residual[i][j] = cap[i][j] - flows[i][j]; 
     }
+  }
+  // no parallel for here 
+  for (int i = 0; i < numVertices; i++) { 
+    residual[input->source].push_back(make_pair(i, cap[input->source][i] - flows[input->source][i])); 
   }
 
   // don't put a parallel for here! 
@@ -87,16 +96,20 @@ void PushRelabelParallelSolver::globalRelabel(int numVertices, int source, int s
   vector<int> q; 
   q.push_back(sink); 
   while (!q.empty()) {  
-    #pragma omp parallel for  
+    #pragma omp parallel for
     for (int i = 0; i < q.size(); i++) { 
       int v = q[i];  
       for (int j = 0; j < numVertices; j++) { // clearing this is a little slow 
         discoveredVertices[v][j] = 0; 
       }
-      for (int w = 0; w < numVertices; w++) { 
-        if (w != source && residual[w][v] > 0) { //@TODO: spends a lot of time checking this line in global relabel for all the vertices 
+      // want to loop through the residuals that go to v 
+      // for (int w = 0; w < reverseResiduals[v].size(); w++) { //reverseResiduals[v] is all the w that go to v (all such residual[w][v]) 
+        
+      // }
+      for (int w = 1; w < numVertices-1; w++) { 
+        if (residual[w][v] > 0) { //@TODO: spends a lot of time checking this line because is going down a column 
           int tmp = numVertices; 
-          if (w != sink && d[w].compare_exchange_strong(tmp, d[v]+1)) { 
+          if (d[w].compare_exchange_strong(tmp, d[v]+1)) { 
             discoveredVertices[v][w] = 1; 
           }
           // if (w != sink && d[w] == numVertices) { 
@@ -109,6 +122,7 @@ void PushRelabelParallelSolver::globalRelabel(int numVertices, int source, int s
     //@TODO: done with parallel prefix sum 
     vector<int> newq; 
     for (int v : q) { 
+      // dont put a parallel for here 
       for (int j = 0; j < numVertices; j++) { 
         if (discoveredVertices[v][j]) { 
           newq.push_back(j); 
@@ -155,12 +169,13 @@ void PushRelabelParallelSolver::pushRelabel(MaxFlowInstance *input, MaxFlowSolut
       // printf("does a global relabel\n"); 
       workSinceLastGR = 0; 
       globalRelabel(numVertices, input->source, input->sink); 
+      #pragma omp parallel for 
       for (int i = 0; i < numVertices; i++) { 
         copyOfLabels[i] = d[i];
       }
       
       // @TODO: parallel array comprehension using map/filter 
-      set<int> newWorkingSet; 
+      unordered_set<int> newWorkingSet; 
       for (int v : workingSet) { 
         if (d[v] < numVertices) { 
           newWorkingSet.insert(v); 
@@ -323,7 +338,7 @@ void PushRelabelParallelSolver::pushRelabel(MaxFlowInstance *input, MaxFlowSolut
     // could create a copy of the working set and work off of that 
     // make working set an actual set in c++ 
     // create new working set 
-    set<int> workingSetNew; 
+    unordered_set<int> workingSetNew; 
     // this loop was slowwww 
     for (int i : workingSet) {
       workSinceLastGR += work[i]; // combined in here 

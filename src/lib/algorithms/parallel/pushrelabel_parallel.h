@@ -3,6 +3,7 @@
 #include <atomic>
 #include <set> 
 #include <queue> 
+#include <unordered_set>
 
 using namespace std; 
 
@@ -19,12 +20,13 @@ class PushRelabelParallelSolver{
     int **discoveredVertices; 
     int *copyOfLabels; 
     int *copyOfExcess; 
-    int **residual; 
+    vector<int> *residual; 
+    vector<int> *reverseResidual; 
     int *work; 
 
     int *active; // replace with a queue 
     Timer t; 
-    set<int> workingSet; 
+    unordered_set<int> workingSet; 
     // int *workingSet; 
     void initialize(MaxFlowInstance *input);
     void preflow(MaxFlowInstance *input);
