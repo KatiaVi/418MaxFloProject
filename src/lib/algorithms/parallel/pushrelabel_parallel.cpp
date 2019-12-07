@@ -34,15 +34,15 @@ void PushRelabelParallelSolver::initialize(MaxFlowInstance *input) {
   
   flows = (int**)calloc(numVertices, sizeof(int*));
   discoveredVertices = (int**)calloc(numVertices, sizeof(int*));
-  residual = (vector<int> *)calloc(numVertices, vector<int>); 
-  reverseResidual = (vector<int> *)calloc(numVertices, vector<int>); 
-  // residual = (int**)calloc(numVertices, sizeof(int*));
+  // residual = (vector<int> *)calloc(numVertices, vector<int>); 
+  // reverseResidual = (vector<int> *)calloc(numVertices, vector<int>); 
+  residual = (int**)calloc(numVertices, sizeof(int*));
 
   #pragma omp parallel for
   for (int i = 0; i < numVertices; i++) { 
     flows[i] = (int*)calloc(numVertices, sizeof(int));
     discoveredVertices[i] = (int*)calloc(numVertices, sizeof(int));
-    // residual[i] = (int*)calloc(numVertices, sizeof(int));
+    residual[i] = (int*)calloc(numVertices, sizeof(int));
     isDiscovered[i] = ATOMIC_FLAG_INIT;
   }
 }
@@ -61,21 +61,17 @@ void PushRelabelParallelSolver::preflow(MaxFlowInstance *input) {
     if (cap[input->source][i] != 0 && (input->source != i)) { 
       // then it is an adjacent edge 
       flows[input->source][i] = cap[input->source][i]; 
-      // residual[input->source][i] = cap[input->source][i] - flows[input->source][i]; -> moved this to another for loop so that this one could be parallelized 
+      residual[input->source][i] = cap[input->source][i] - flows[input->source][i]; -> moved this to another for loop so that this one could be parallelized 
       excessPerVertex[i] = flows[input->source][i];
       // add residual flow 
       flows[i][input->source] = -flows[input->source][i]; 
-      residual[i].push_back(make_pair(input->source, cap[i][input->source] - flows[i][input->source]));
-      // residual[i][input->source] = cap[i][input->source] - flows[i][input->source]; 
+      // residual[i].push_back(make_pair(input->source, cap[i][input->source] - flows[i][input->source]));
+      residual[i][input->source] = cap[i][input->source] - flows[i][input->source]; 
     }
     for (int j = 0; j < numVertices; j++) { 
-      residual[i].push_back(make_pair(j, cap[i][j] - flows[i][j])); 
-      // residual[i][j] = cap[i][j] - flows[i][j]; 
+      // residual[i].push_back(make_pair(j, cap[i][j] - flows[i][j])); 
+      residual[i][j] = cap[i][j] - flows[i][j]; 
     }
-  }
-  // no parallel for here 
-  for (int i = 0; i < numVertices; i++) { 
-    residual[input->source].push_back(make_pair(i, cap[input->source][i] - flows[input->source][i])); 
   }
 
   // don't put a parallel for here! 

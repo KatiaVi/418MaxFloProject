@@ -20,8 +20,8 @@ class PushRelabelParallelSolver{
     int **discoveredVertices; 
     int *copyOfLabels; 
     int *copyOfExcess; 
-    vector<int> *residual; 
-    vector<int> *reverseResidual; 
+    int **residual; 
+    // vector<int> *reverseResidual; 
     int *work; 
 
     int *active; // replace with a queue 
