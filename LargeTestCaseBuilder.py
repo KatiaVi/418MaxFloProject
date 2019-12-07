@@ -17,7 +17,7 @@ def convertGraphToMaxflowFormat(fileName):
         numVertices = nums[0]
         maxFlowGraphFile.write("p max "  + line)
         maxFlowGraphFile.write("n 1 s\n")
-        maxFlowGraphFile.write("n "+numVertices+" t\n")
+        maxFlowGraphFile.write("n "+ numVertices+" t\n")
         line = fp.readline()
         currVertex = 1
         while line:
