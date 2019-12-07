@@ -61,7 +61,7 @@ void PushRelabelParallelSolver::preflow(MaxFlowInstance *input) {
     if (cap[input->source][i] != 0 && (input->source != i)) { 
       // then it is an adjacent edge 
       flows[input->source][i] = cap[input->source][i]; 
-      residual[input->source][i] = cap[input->source][i] - flows[input->source][i]; -> moved this to another for loop so that this one could be parallelized 
+      residual[input->source][i] = cap[input->source][i] - flows[input->source][i]; // -> moved this to another for loop so that this one could be parallelized 
       excessPerVertex[i] = flows[input->source][i];
       // add residual flow 
       flows[i][input->source] = -flows[input->source][i]; 
