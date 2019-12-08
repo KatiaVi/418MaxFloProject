@@ -4,10 +4,11 @@
 
 #include "../../world.h"
 #include "../../timing.h"
+#include "tbb/concurrent_vector.h"
 #include <vector>
 #include <utility>
 
-#define BAGSPLIT_CUTOFF 100
+#define BAGSPLIT_CUTOFF 128
 
 class DinicsParallelSolver {
  public:
@@ -41,6 +42,8 @@ class DinicsParallelSolver {
   void smallInitialize(MaxFlowInstanceSmall *input);
   bool smallBFS(int source, int sink);
   int smallSendFlow(int currentVertex, int flow, int sink, int *start);
+  bool smallParallelBFS(int source, int sink);
+  void smallProcessLevel(std::vector<int> &oldVertexQ, std::vector<int> &newVertexQ);
 
 };
 

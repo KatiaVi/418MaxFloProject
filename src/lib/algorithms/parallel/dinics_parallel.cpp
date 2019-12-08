@@ -22,47 +22,22 @@ void DinicsParallelSolver::smallInitialize(MaxFlowInstanceSmall *input){
   //#pragma omp parallel for
   for (int i=0; i < num_vertices; i++){
     for (int j=0; j < capacitiesSmall[i].size(); j++){
-      std::pair<int,int> initialFlow = std::make_pair(std::get<0>(capacitiesSmall[i][j]), 0);
+      std::pair<int,int> initialFlow = std::make_pair(capacitiesSmall[i][j].first, 0);
       std::pair<int,int> initialFlowReverse = std::make_pair(i, 0);
 
       flowsSmall[i].push_back(initialFlow);
-      flowsSmall[std::get<0>(capacitiesSmall[i][j])].push_back(initialFlowReverse);
+      flowsSmall[capacitiesSmall[i][j].first].push_back(initialFlowReverse);
     }
   }
-
-//  printf("Capacities:\n");
-//  for (int i=0; i < num_vertices; i++){
-//    for (int j=0; j < capacitiesSmall[i].size(); j++){
-//      printf("%d: (%d, %d)\n", i, std::get<0>(capacitiesSmall[i][j]), std::get<1>(capacitiesSmall[i][j]));
-//    }
-//    std::cout << "\n";
-//  }
-//
-//  printf("Flows:\n");
-//  for (int i=0; i < num_vertices; i++){
-//    for (int j=0; j < flowsSmall[i].size(); j++){
-//      printf("%d: (%d, %d)\n", i, std::get<0>(flowsSmall[i][j]), std::get<1>(flowsSmall[i][j]));
-//    }
-//    std::cout << "\n";
-//  }
-//
-//  printf("Edges:\n");
-//  for (int i=0; i < num_vertices; i++){
-//    for (int j=0; j < edges[i].size(); j++){
-//      printf("%d: %d\n", i, edges[i][j]);
-//      printf("size of edges for vertex %d is %d\n", i, edges[i].size());
-//    }
-//    std::cout << "\n";
-//  }
 }
 
 bool DinicsParallelSolver::smallBFS(int source, int sink){
 //  std::cout << "in smallBFS\n";
   BFSTimer.reset();
-  //#pragma parallel for private(num_vertices)
+
+ // #pragma parallel for private(num_vertices)
   for (int i = 0 ; i < num_vertices ; i++)
     levels[i] = -1;
-  //#pragma omp barrier
 
   levels[source] = 0;  // Level of source vertex
 
@@ -77,36 +52,22 @@ bool DinicsParallelSolver::smallBFS(int source, int sink){
     int current = vertexQ.front();
     vertexQ.pop();
 
-    //TODO: Does initializing the reusable accesses to their own variables actually help with performance?
-    std::vector<int> neighbors = edges[current];
-    std::vector<std::pair<int,int>> flowNeighbors = flowsSmall[current];
-    std::vector<std::pair<int,int>> capacitiesNeighbors = capacitiesSmall[current];
-    int currentLevel = levels[current];
-
-
-    //#pragma parallel for firstprivate(flowNeighbors, capacitiesNeighbors)
-    for (int i = 0; i < neighbors.size(); i++)
+ //   #pragma parallel for schedule(static) untied
+    for (int i = 0; i < edges[current].size(); i++)
     {
-      int child = neighbors[i];
-      std::vector<std::pair<int,int>>::iterator flowToChild = std::find_if(flowNeighbors.begin(), flowNeighbors.end(),
-                                     [child](std::pair<int,int> tup){ return (std::get<0>(tup) == child); });
-//
-//      std::cout << "(" <<
-//        std::get<0>((*flowToChild)) <<
-//            ", " << std::get<1>((*flowToChild)) << ")\n";
-//
-//      std::cout << "(" << std::get<0>(capacitiesNeighbors[i])  <<
-//          ", " << std::get<1>(capacitiesNeighbors[i]) << ")\n";
+      int child = edges[current][i];
+      std::vector<std::pair<int,int>>::iterator flowToChild = std::find_if(flowsSmall[current].begin(), flowsSmall[current].end(),
+          [child](std::pair<int,int> tup){ return (tup.first== child); });
 
-      if (levels[child] < 0  && std::get<1>((*flowToChild)) < std::get<1>(capacitiesNeighbors[i]))
+      if (levels[child] < 0  && (*flowToChild).second < capacitiesSmall[current][i].second)
       {
         // Level of current vertex is,
         // level of parent + 1
-        levels[child] = currentLevel + 1;
-       // #pragma omp critical
-       // {
+        levels[child] = levels[current] + 1;
+  //      #pragma omp critical
+  //      {
           vertexQ.push(child);
-       // }
+  //      }
       }
     }
   }
@@ -116,86 +77,125 @@ bool DinicsParallelSolver::smallBFS(int source, int sink){
 //  std::cout << "finished smallBFS\n";
   return levels[sink] < 0 ? false : true;
 }
+
+void DinicsParallelSolver::smallProcessLevel(std::vector<int> &oldVertexQ, std::vector<int> &newVertexQ){
+
+  if (oldVertexQ.size() > BAGSPLIT_CUTOFF) {
+    std::vector<int> newVertexQB;
+
+    #pragma omp parallel
+    #pragma omp single nowait
+    {
+      const int half_size = oldVertexQ.size() / 2;
+      std::vector<int> A(oldVertexQ.begin(), oldVertexQ.begin() + half_size);
+      std::vector<int> B(oldVertexQ.begin() + half_size, oldVertexQ.end());
+
+      #pragma omp task /*shared(newVertexQB)*/ untied
+      {
+        smallProcessLevel(B, newVertexQB);
+      }
+      smallProcessLevel(A, newVertexQ);
+
+      #pragma omp taskwait
+      newVertexQ.insert(newVertexQ.end(), newVertexQB.begin(), newVertexQB.end());
+    }
+
+//    #pragma omp parallel for
+//    for (int i =0; i < newVertexQB.size(); i++){
+//      newVertexQB.push_back(newVertexQB[i]);
+//    }
+  }
+  else {
+    for (int i = 0; i < oldVertexQ.size(); i++){
+      int v = oldVertexQ[i];
+
+ //     #pragma omp parallel for //shared(newVertexQ) schedule(static)
+      for (int j=0; j < edges[v].size(); j++){
+        int w = edges[v][j];
+
+
+        std::vector<std::pair<int,int>>::iterator flowToChild = std::find_if(flowsSmall[v].begin(), flowsSmall[v].end(),
+            [w](std::pair<int,int> tup){ return (tup.first == w); });
+
+
+        if (levels[w] < 0 && (*flowToChild).second < capacitiesSmall[v][j].second) {
+          levels[w] = currentLevel + 1;
+
+        //  #pragma omp critical
+        //  {
+            newVertexQ.push_back(w);
+        //  }
+        }
+      }
+    }
+  }
+}
+
+// Finds if more flow can be sent from s to t.
+// Also assigns levels to nodes.
+bool DinicsParallelSolver::smallParallelBFS(int source, int sink)
+{
+  BFSTimer.reset();
+
+  #pragma omp parallel for
+  for (int i = 0 ; i < num_vertices ; i++)
+    levels[i] = -1;
+  #pragma omp barrier
+
+  levels[source] = 0;
+  currentLevel = 0;
+  std::vector<int> vertexQ;
+  vertexQ.push_back(source);
+
+
+  while (vertexQ.size() > 0){
+    std::vector<int> vertexQNextLevel;
+    smallProcessLevel(vertexQ, vertexQNextLevel);
+    currentLevel += 1;
+    vertexQ = vertexQNextLevel;
+  }
+
+  BFStime += BFSTimer.elapsed();
+  return levels[sink] < 0 ? false : true;
+}
+
 int DinicsParallelSolver::smallSendFlow(int current, int flow, int sink, int *start){
 // Sink reached
   if (current == sink) {
     return flow;
   }
 
-  std::vector<std::pair<int,int>> tempCapacities = capacitiesSmall[current];
-  std::vector<std::pair<int,int>> tempFlows = flowsSmall[current];
-  std::vector<int> tempEdges = edges[current];
-  int currentLevelPlusOne = levels[current] + 1;
-
-//  printf("tempEdges size: %d start[current]: %d\n", tempEdges.size(), start[current]);
-
-  for (  ; start[current] < tempEdges.size(); start[current]++) {
+  for (  ; start[current] < edges[current].size(); start[current]++) {
     // Pick next edge from adjacency list of current
     //__builtin_prefetch((const int*)(&tempEdges[start[current]+3]),0,0);
 
-    int child = tempEdges[start[current]];
-
-//    printf("current = %d start[%d] = %d and child = %d\n", current, current, start[current], child);
+    int child = edges[current][start[current]];
 
     std::vector < std::pair < int, int >> ::iterator
     flowToChild = std::find_if(flowsSmall[current].begin(), flowsSmall[current].end(),
-        [child](std::pair<int, int> tup) { return (std::get<0>(tup) == child); });
+        [child](std::pair<int, int> tup) { return (tup.first == child); });
+
 
     std::vector < std::pair < int, int >> ::iterator
       flowFromChild = std::find_if(flowsSmall[child].begin(), flowsSmall[child].end(),
-                                   [current](std::pair<int, int> tup) { return (std::get<0>(tup) == current); });
+                                   [current](std::pair<int, int> tup) { return (tup.first == current); });
 
-    std::vector < std::pair < int, int >> ::iterator
-      capacityOnEdge = std::find_if(tempCapacities.begin(), tempCapacities.end(),
-                                    [child](std::pair<int, int> tup) { return (std::get<0>(tup) == child); });
+    //int capacityOnEdge = tempCapacities[start[current]].second;
+    int capacityOnEdge = capacitiesSmall[current][start[current]].second;
 
-//      std::cout << "(" <<
-//                std::get<0>((*flowToChild)) <<
-//                ", " << std::get<1>((*flowToChild)) << ")\n";
-//
-//      std::cout << "(" <<
-//                std::get<0>((*flowFromChild)) <<
-//                ", " << std::get<1>((*flowFromChild)) << ")\n";
-//
-//      std::cout << "(" <<
-//                std::get<0>((*capacityOnEdge)) <<
-//                ", " << std::get<1>((*capacityOnEdge)) << ")\n";
-
-      if (levels[child] == currentLevelPlusOne && std::get<1>(*flowToChild) < std::get<1>(*capacityOnEdge)) {
+      if (levels[child] == levels[current] + 1 && (*flowToChild).second < capacityOnEdge/*std::get<1>(*capacityOnEdge)*/) {
         // find minimum flow from current to sink
-        int curr_flow = std::min(flow, std::get<1>(*capacityOnEdge) - std::get<1>(*flowToChild));
-//        printf("curr flow: %d\n", curr_flow);
-
+        int curr_flow = std::min(flow, capacityOnEdge - (*flowToChild).second);
         int temp_flow = smallSendFlow(child, curr_flow, sink, start);
-//        printf("GOT temp_flow: %d\n", temp_flow);
 
         // flow is greater than zero
         if (temp_flow > 0) {
           std::vector<std::pair<int, int>>
-              newFlows = {std::make_pair(std::get<0>(*flowToChild), std::get<1>(*flowToChild) + temp_flow),
-                          std::make_pair(current, std::get<1>(*flowFromChild) - temp_flow)};
-
-//          std::cout << "(" <<
-//                    std::get<0>(*flowToChild) <<
-//                    ", " << std::get<1>(*flowToChild) << ")\n";
-//
-//          std::cout << "(" <<
-//                    std::get<0>(newFlows.front()) <<
-//                    ", " << std::get<1>(newFlows.front()) << ")\n";
+              newFlows = {std::make_pair((*flowToChild).first, (*flowToChild).second + temp_flow),
+                          std::make_pair(current, (*flowFromChild).second - temp_flow)};
 
           (*flowToChild).swap(newFlows.front());
           (*flowFromChild).swap(newFlows.back());
-
-//          std::swap(*flowToChild, &(newFlows.front())); // does this change it in the actual flowsSmall structure
-//          std::iter_swap(flowFromChild, &(newFlows.back()));
-
-//          printf("Flows:\n");
-//          for (int i=0; i < num_vertices; i++){
-//            for (int j=0; j < flowsSmall[i].size(); j++){
-//              printf("%d: (%d, %d)\n", i, std::get<0>(flowsSmall[i][j]), std::get<1>(flowsSmall[i][j]));
-//            }
-//            std::cout << "\n";
-//          }
 
           return temp_flow;
       }
@@ -224,15 +224,6 @@ void DinicsParallelSolver::smallSolve(MaxFlowInstanceSmall *input, MaxFlowSoluti
     int flow = smallSendFlow(input->source, INT_MAX, input->sink, start);
     sendFlowTime += sendFlowTimer.elapsed();
 
-//
-//    printf("Flows:\n");
-//    for (int i=0; i < num_vertices; i++){
-//      for (int j=0; j < flowsSmall[i].size(); j++){
-//        printf("%d: (%d, %d)\n", i, std::get<0>(flowsSmall[i][j]), std::get<1>(flowsSmall[i][j]));
-//      }
-//      std::cout << "\n";
-//    }
-
     // while flow is not zero in graph from S to D
     while (flow > 0){
       // Add path flow to overall flow
@@ -248,7 +239,12 @@ void DinicsParallelSolver::smallSolve(MaxFlowInstanceSmall *input, MaxFlowSoluti
   printf("Time spent in BFS: %6fs\n", BFStime);
   printf("Time spent in sendFlow: %6fs\n", sendFlowTime);
 
-  //printf("maxflow: %d\n", totalFlow);
+  std::vector<int> sizes;
+  for (int i=0; i < num_vertices; i++){
+    sizes.push_back(edges[i].size());
+  }
+
+  printf("Max outdegree: %d\n", *(std::max_element(sizes.begin(), sizes.end())));
 
   output->maxFlow = totalFlow;
   output->flow = flowsSmall;
