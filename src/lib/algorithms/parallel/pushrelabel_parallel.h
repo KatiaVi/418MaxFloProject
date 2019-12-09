@@ -4,6 +4,8 @@
 #include <set> 
 #include <queue> 
 #include <unordered_set>
+#include "tbb/concurrent_vector.h"
+#include "tbb/concurrent_unordered_set.h"
 
 using namespace std; 
 
@@ -16,13 +18,13 @@ class PushRelabelParallelSolver{
     int *excessPerVertex; // excess flow on each vertex also exists 
     atomic_int *d; // the labels 
     atomic_int *addedExcess;  
-    atomic_bool *isDiscovered; 
-    int **discoveredVertices; 
-    int *copyOfLabels; 
+    atomic_bool *updated;
+    int *copyOfLabels;
     int *copyOfExcess; 
-    int **residual; 
-    // vector<int> *reverseResidual; 
-    int *work; 
+    int **residual;
+    vector<int> *reverseResiduals;
+    vector<tbb::concurrent_vector<int>> discoveredVertices;
+    int *work;
 
     int *active; // replace with a queue 
     Timer t; 
