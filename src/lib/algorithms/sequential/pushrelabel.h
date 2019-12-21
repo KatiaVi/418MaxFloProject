@@ -10,7 +10,6 @@ class PushRelabelSequentialSolver{
     int** flows; // x coordinate is the source, y coordinate is the sink, for edges 
     int *excessPerVertex; // excess flow on each vertex also exists 
     int *d; // the labels 
-    int *active; // replace with a queue 
     queue<int> activeQueue; 
     int totalFlow; 
     Timer t; 

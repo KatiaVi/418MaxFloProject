@@ -53,4 +53,4 @@ class MaxFlowSolutionSmall{
   // edge from i to j with flow of f through it
 };
 
-#endif //INC_418MAXFLOPROJECT_MAXFLOWINSTANCE_H
+#endif 

@@ -60,7 +60,7 @@ void PushRelabelParallelSolver::preflow(MaxFlowInstance *input) {
     if (cap[input->source][i] != 0 && (input->source != i)) {
       // then it is an adjacent edge 
       flows[input->source][i] = cap[input->source][i];
-      residual[input->source][i] = cap[input->source][i] - flows[input->source][i]; // -> moved this to another for loop so that this one could be parallelized
+      residual[input->source][i] = cap[input->source][i] - flows[input->source][i]; 
 
       excessPerVertex[i] = flows[input->source][i];
       // add residual flow 
@@ -74,11 +74,9 @@ void PushRelabelParallelSolver::preflow(MaxFlowInstance *input) {
 
   }
 
-
-  // don't put a parallel for here!
   for (int i = 0; i < numVertices; i++) {
     discoveredVertices.push_back(cv);
-    if (i != input->source && excessPerVertex[i] > 0) { //@TODO: took out the && i != input->sink
+    if (i != input->source && excessPerVertex[i] > 0) { 
       workingSet.insert(i);
     }
   }
@@ -121,7 +119,6 @@ void PushRelabelParallelSolver::globalRelabel(int numVertices, int source, int s
       }
     }
 
-    //@TODO: done with parallel prefix sum 
     tbb::concurrent_vector<int> newq;
     for (int v : q) { 
       #pragma omp parallel for
@@ -155,8 +152,7 @@ void PushRelabelParallelSolver::pushRelabel(MaxFlowInstance *input, MaxFlowSolut
       for (int i = 0; i < numVertices; i++) { 
         copyOfLabels[i] = d[i];
       }
-      
-      // @TODO: parallel array comprehension using map/filter 
+     
       unordered_set<int> newWorkingSet; 
       for (int v : workingSet) { 
         if (d[v] < numVertices) { 
@@ -187,7 +183,7 @@ void PushRelabelParallelSolver::pushRelabel(MaxFlowInstance *input, MaxFlowSolut
               bool skipped = false;
 
               int numEdgesScanned = 0; 
-              // #pragma omp parallel for (local copy of isDiscovered[w])
+              
               for (int w = 0; w < numVertices; w++) {
 
                 if (residual[v][w] > 0) {
@@ -229,7 +225,7 @@ void PushRelabelParallelSolver::pushRelabel(MaxFlowInstance *input, MaxFlowSolut
 
             addedExcess[v] += (e - excessPerVertex[v]);
             if (e > 0) {
-              discoveredVertices[v].push_back(v);//[v] = 1;
+              discoveredVertices[v].push_back(v);
             }
           }
         }
@@ -247,7 +243,7 @@ void PushRelabelParallelSolver::pushRelabel(MaxFlowInstance *input, MaxFlowSolut
 
     unordered_set<int> workingSetNew; 
     for (int i : workingSet) {
-      workSinceLastGR += work[i]; // combined in here
+      workSinceLastGR += work[i]; 
       for (int k = 0; k < discoveredVertices[i].size(); k++){
         int j = discoveredVertices[i][k];
         if(d[j] < numVertices) {
@@ -259,7 +255,7 @@ void PushRelabelParallelSolver::pushRelabel(MaxFlowInstance *input, MaxFlowSolut
           workingSetNew.insert(j); 
         }
       }
-      residual[i][input->sink] = cap[i][input->sink] - flows[i][input->sink]; //@TODO: maybe can do this access in a more cache friendly way
+      residual[i][input->sink] = cap[i][input->sink] - flows[i][input->sink]; 
       residual[input->sink][i] = cap[input->sink][i] - flows[input->sink][i];
     }
     workingSet.swap(workingSetNew);
@@ -273,7 +269,7 @@ void PushRelabelParallelSolver::pushRelabel(MaxFlowInstance *input, MaxFlowSolut
           #pragma omp task 
           { 
             int i = *iter; 
-            excessPerVertex[i] += addedExcess[i]; // @TODO: the discovered one might have had stuff added to it 
+            excessPerVertex[i] += addedExcess[i]; 
             addedExcess[i] = 0;
           }
         } 

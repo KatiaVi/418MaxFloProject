@@ -19,7 +19,6 @@ void DinicsParallelSolver::smallInitialize(MaxFlowInstanceSmall *input){
   capacitiesSmall = input->inputGraph.capacities;
   edges = input->inputGraph.edges;
 
-  //#pragma omp parallel for
   for (int i=0; i < num_vertices; i++){
     for (int j=0; j < capacitiesSmall[i].size(); j++){
       std::pair<int,int> initialFlow = std::make_pair(capacitiesSmall[i][j].first, 0);
@@ -32,10 +31,8 @@ void DinicsParallelSolver::smallInitialize(MaxFlowInstanceSmall *input){
 }
 
 bool DinicsParallelSolver::smallBFS(int source, int sink){
-//  std::cout << "in smallBFS\n";
   BFSTimer.reset();
 
- // #pragma parallel for private(num_vertices)
   for (int i = 0 ; i < num_vertices ; i++)
     levels[i] = -1;
 
@@ -52,7 +49,6 @@ bool DinicsParallelSolver::smallBFS(int source, int sink){
     int current = vertexQ.front();
     vertexQ.pop();
 
- //   #pragma parallel for schedule(static) untied
     for (int i = 0; i < edges[current].size(); i++)
     {
       int child = edges[current][i];
@@ -64,17 +60,16 @@ bool DinicsParallelSolver::smallBFS(int source, int sink){
         // Level of current vertex is,
         // level of parent + 1
         levels[child] = levels[current] + 1;
-  //      #pragma omp critical
-  //      {
+
           vertexQ.push(child);
-  //      }
+
       }
     }
   }
   // IF we can not reach to the sink we
   // return false else true
   BFStime += BFSTimer.elapsed();
-//  std::cout << "finished smallBFS\n";
+
   return levels[sink] < 0 ? false : true;
 }
 
@@ -90,7 +85,7 @@ void DinicsParallelSolver::smallProcessLevel(std::vector<int> &oldVertexQ, std::
       std::vector<int> A(oldVertexQ.begin(), oldVertexQ.begin() + half_size);
       std::vector<int> B(oldVertexQ.begin() + half_size, oldVertexQ.end());
 
-      #pragma omp task /*shared(newVertexQB)*/ untied
+      #pragma omp task untied
       {
         smallProcessLevel(B, newVertexQB);
       }
@@ -99,17 +94,11 @@ void DinicsParallelSolver::smallProcessLevel(std::vector<int> &oldVertexQ, std::
       #pragma omp taskwait
       newVertexQ.insert(newVertexQ.end(), newVertexQB.begin(), newVertexQB.end());
     }
-
-//    #pragma omp parallel for
-//    for (int i =0; i < newVertexQB.size(); i++){
-//      newVertexQB.push_back(newVertexQB[i]);
-//    }
   }
   else {
     for (int i = 0; i < oldVertexQ.size(); i++){
       int v = oldVertexQ[i];
 
- //     #pragma omp parallel for //shared(newVertexQ) schedule(static)
       for (int j=0; j < edges[v].size(); j++){
         int w = edges[v][j];
 
@@ -121,10 +110,7 @@ void DinicsParallelSolver::smallProcessLevel(std::vector<int> &oldVertexQ, std::
         if (levels[w] < 0 && (*flowToChild).second < capacitiesSmall[v][j].second) {
           levels[w] = currentLevel + 1;
 
-        //  #pragma omp critical
-        //  {
             newVertexQ.push_back(w);
-        //  }
         }
       }
     }
@@ -167,7 +153,6 @@ int DinicsParallelSolver::smallSendFlow(int current, int flow, int sink, int *st
 
   for (  ; start[current] < edges[current].size(); start[current]++) {
     // Pick next edge from adjacency list of current
-    //__builtin_prefetch((const int*)(&tempEdges[start[current]+3]),0,0);
 
     int child = edges[current][start[current]];
 
@@ -180,7 +165,6 @@ int DinicsParallelSolver::smallSendFlow(int current, int flow, int sink, int *st
       flowFromChild = std::find_if(flowsSmall[child].begin(), flowsSmall[child].end(),
                                    [current](std::pair<int, int> tup) { return (tup.first == current); });
 
-    //int capacityOnEdge = tempCapacities[start[current]].second;
     int capacityOnEdge = capacitiesSmall[current][start[current]].second;
 
       if (levels[child] == levels[current] + 1 && (*flowToChild).second < capacityOnEdge/*std::get<1>(*capacityOnEdge)*/) {
@@ -261,10 +245,8 @@ void DinicsParallelSolver::initialize(MaxFlowInstance *input){
   #pragma omp parallel for
   for (int i = 0; i < num_vertices; i++) {
     flows[i] = (int*)calloc(num_vertices, sizeof(int));
-    //int* tempCapacities = capacities[i]; //Todo: Does this actually help?
     for (int j = 0; j < num_vertices; j++) {
-      //__builtin_prefetch((const int*)(&capacities[i][j+250]),0,0);
-      if(/*tempCapacities[j]*/ capacities[i][j]) {
+      if(capacities[i][j]) {
           edges[i].push_back(j);
         }
     }
@@ -335,7 +317,6 @@ bool DinicsParallelSolver::BFS(int source, int sink)
     int current = vertexQ.front();
     vertexQ.pop();
 
-    //TODO: Does initializing the reusable accesses to their own variables actually help with performance?
     std::vector<int> neighbors = edges[current];
     int* flowNeighbors = flows[current];
     int* capacitiesNeighbors = capacities[current];

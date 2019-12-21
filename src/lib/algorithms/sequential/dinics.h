@@ -9,7 +9,6 @@
 
 class DinicsSequentialSolver{
  public:
-  // look into shared, unique, reference stuff to make this more effecient
   void solve(MaxFlowInstance *input, MaxFlowSolution *output);
 
  private:
